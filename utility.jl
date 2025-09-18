@@ -102,13 +102,13 @@ end
 #================================================
     Functions related to driving
 ================================================#
-function prepare_drivemode(drive_type, array, N, w0)
+function prepare_drivemode(drive_type, array, w0)
     # Prepare real-space mode for driving or detection
-    get_drivemode.(drive_type, array, N, w0)
+    get_drivemode.(drive_type, array, w0)
 end
 
 
-function get_drivemode(drive_type, r, N, w0)
+function get_drivemode(drive_type, r, w0)
     # Get the driving mode evaluated at r
     if drive_type == "homogenous"
         return exp(1im*wa*r[3]) 
@@ -168,7 +168,7 @@ function Gaussian_k(w0, kperp, normalize_or_not)
         N = 1.0
     end
     
-    # Return the full Gaussian mode
+    # Finally return the full Gaussian mode
     return exp(-w0^2*norm(kperp)^2/4.0)/sqrt(N)
 end
 
@@ -198,20 +198,20 @@ function prepare_Σ(lattice_type, a, L, k_n, e1, e1_label)
     # Set the k-space/BZ resolution
     dk = (π/a)/(k_n - 1)
     k_range = (0:k_n-1)*dk
-    Σ = zeros(ComplexF64, k_n, k_n)
+    Σ0 = zeros(ComplexF64, k_n, k_n)
     for (i, kx) in enumerate(k_range), (j, ky) in enumerate(k_range)
         # Only consider the first octant
         if ky > kx continue end
         
         # Calculate and assign self-energy
-        Σ[i, j] = -ana_FT_GF(lattice_type, a, e1, e1, kx, ky, L, 1e-5)
-        Σ[j, i] = Σ[i, j]
+        Σ0[i, j] = -ana_FT_GF(lattice_type, a, e1, e1, kx, ky, L, 1e-5)
+        Σ0[j, i] = Σ0[i, j]
     end
     
-    # Save Σ
-    save_as_txt(Σ, save_dir, filename_Σ0)
+    # Save Σ0
+    save_as_txt(Σ0, save_dir, filename_Σ0)
     
-    return Σ
+    return Σ0
 end
 
 
