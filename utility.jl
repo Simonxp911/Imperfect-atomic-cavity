@@ -1,8 +1,8 @@
 
 
-#================================================
-    Functions related to the real space atomic array
-================================================#
+# ================================================
+#   Functions related to the real space atomic array
+# ================================================
 function get_array(lattice_type, N_sheets, a, L, radius, ff, pos_unc, N_inst, cut_corners=true)
     # Get the perfect array (no missing atoms, no randomness in position)
     perfect_array = get_perfect_array(lattice_type, N_sheets, a, L, radius, cut_corners)
@@ -99,9 +99,9 @@ function introduce_position_uncertainty_to_array_sites(array, pos_unc)
 end
 
 
-#================================================
-    Functions related to driving
-================================================#
+# ================================================
+#   Functions related to driving
+# ================================================
 function prepare_drivemode(drive_type, array, w0)
     # Prepare real-space mode for driving or detection
     get_drivemode.(drive_type, array, w0)
@@ -173,9 +173,9 @@ function Gaussian_k(w0, kperp, normalize_or_not)
 end
 
 
-#================================================
-    Functions related to the Green's function
-================================================#
+# ================================================
+#   Functions related to the Green's function
+# ================================================
 function get_Gnm(array, N, e1)
     return realspace_GF.(reshape(array, N, 1), 
                          reshape(array, 1, N), 

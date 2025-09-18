@@ -19,9 +19,9 @@ include("figures.jl")
 include("save_load.jl")
 
 
-#================================================
-    Main functions
-================================================#
+# ================================================
+#   Main functions
+# ================================================
 function define_system_parameters()
     # Experiment-specific parameters
     a_dimensionfull = 532                #nm  (lattice spacing)
@@ -149,9 +149,9 @@ function main()
 end
 
 
-#================================================
-    Generate figures
-================================================#
+# ================================================
+#   Generate figures
+# ================================================
 function make_tscan_fig(SP)
     # Perform the scan
     tscan = scan_transmission_fin(SP)

@@ -15,9 +15,9 @@ include("calc_Greens.jl")
 include("save_load.jl")
 
 
-#================================================
-    Main functions
-================================================#
+# ================================================
+#   Main functions
+# ================================================
 function define_system_parameters()
     # Read input file
     input = readlines(ARGS[1])

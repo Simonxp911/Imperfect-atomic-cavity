@@ -1,0 +1,4 @@
+sbatch_script.sh
+*.out
+Fiber array.code-workspace
+input*

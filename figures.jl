@@ -191,7 +191,7 @@ function fig_Efield_intensity(SP)
     Δ = tildeDelta - tildeGamma*tan(wa*SP.L)
     
     # Find the steady state coherences
-    σ_ss = calc_σ_ss(Δ, SP.array[1], SP.N, SP.e1, SP.drivemode[1])
+    σ_ss = calc_σ_ss(Δ, SP.N, SP.Gnm[1], SP.drivemode[1])
     
     # Define x, y, and z ranges for the plot
     x_range = range(-3*SP.radius*SP.a, 3*SP.radius*SP.a, 101)
@@ -204,7 +204,7 @@ function fig_Efield_intensity(SP)
         r = [x, 0.0, z]
         
         # We calculate E-field multiplied by d and divided by incoming amplitude
-        Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.N, SP.drive_type, SP.w0, SP.e1, "forward")
+        Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
         
         intensity_xz[i, j] = Ed'*Ed
     end
@@ -214,7 +214,7 @@ function fig_Efield_intensity(SP)
         r = [x, y, maximum(z_range)]
         
         # We calculate E-field multiplied by d and divided by incoming amplitude
-        Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.N, SP.drive_type, SP.w0, SP.e1, "forward")
+        Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
         
         intensity_xy[i, j] = Ed'*Ed
     end
@@ -257,7 +257,7 @@ function fig_Efield_intensity_3D(SP)
     Δ = tildeDelta - tildeGamma*tan(wa*SP.L)
     
     # Find the steady state coherences
-    σ_ss = calc_σ_ss(Δ, SP.array[1], SP.N, SP.e1, SP.drivemode[1])
+    σ_ss = calc_σ_ss(Δ, SP.N, SP.Gnm[1], SP.drivemode[1])
     
     # Define x, y, and z ranges for the plot
     n = 101
@@ -274,7 +274,7 @@ function fig_Efield_intensity_3D(SP)
                                    [x_range[i], y_range[j], z_range[end]]),
                                    intensities)
             # We calculate E-field multiplied by d and divided by incoming amplitude
-            Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.N, SP.drive_type, SP.w0, SP.e1, "forward")
+            Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
             
             intensity[i, j] = Ed'*Ed
         end

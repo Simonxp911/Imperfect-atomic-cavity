@@ -1,9 +1,9 @@
 
 
-#================================================
-    Calculate steady state atomic expectation values
-================================================#
-function calc_σ_ss(Δ, array, N, e1, Gnm, drivemode)
+# ================================================
+#   Calculate steady state atomic expectation values
+# ================================================
+function calc_σ_ss(Δ, N, Gnm, drivemode)
     # The transmission amplitude for some drive and identical detection 
     # is found by a matrix inversion to solve the EoMs in the steady state
     
@@ -15,9 +15,9 @@ function calc_σ_ss(Δ, array, N, e1, Gnm, drivemode)
 end
 
 
-#================================================
-    Calculate E-field for finite array
-================================================#
+# ================================================
+#   Calculate E-field for finite array
+# ================================================
 function calc_atomic_Efield_fin(r, array, σ_ss, e1)
     if isempty(σ_ss)
         return zeros(ComplexF64, 3)
@@ -43,12 +43,12 @@ function calc_total_Efield_fin(r, array, σ_ss, drive_type, w0, e1)
 end
 
 
-#================================================
-    Calculate transmission amplitudes
-================================================#
+# ================================================
+#   Calculate transmission amplitudes
+# ================================================
 function calc_transmission_fin(Δ, array, Gnm, drivemode, SP)
     # Get the steady state
-    σ_ss = calc_σ_ss(Δ, array, SP.N, SP.e1, Gnm, drivemode)
+    σ_ss = calc_σ_ss(Δ, SP.N, Gnm, drivemode)
     
     if SP.detec_mode == "drive_mode"
         # The transmission amplitude for some drive and identical detection 
@@ -208,9 +208,9 @@ function calc_transmission_inf(lattice_type, N_sheets, a, L, Δ, e1, e1_label, d
 end
 
 
-#================================================
-    Make scans of the transmission amplitudes and do statistics for them
-================================================#
+# ================================================
+#   Make scans of the transmission amplitudes and do statistics for them
+# ================================================
 function scan_transmission_fin(SP)
     printlnX("Runnning scan_transmission_fin")
     

@@ -1,8 +1,8 @@
 
 
-#================================================
-    Functions related to packing/unpacking data
-================================================#
+# ================================================
+#   Functions related to packing/unpacking data
+# ================================================
 function pack_tscan(tscan)
     return tscan
 end
@@ -23,9 +23,9 @@ function unpack_tscan_inf(data)
 end
 
 
-#================================================
-    Functions related to filenames
-================================================#
+# ================================================
+#   Functions related to filenames
+# ================================================
 function format_Complex_to_String(z)
     # Return a zero if z = 0
     if z == 0 return "0" end
@@ -79,9 +79,9 @@ function get_postfix(lattice_type, a, L, k_n, e1_label)
 end
 
 
-#================================================
-    Functions related to saving and loading
-================================================#
+# ================================================
+#   Functions related to saving and loading
+# ================================================
 function check_if_already_calculated(save_dir, filenames, entry_type=Float64)
     data = []
     for filename in filenames
