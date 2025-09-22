@@ -42,8 +42,8 @@ function define_system_parameters()
     
     # Specifications for ranges of parameters
     Delta_specs         = (-2.0, 3.0, 100)
-    ff_specs            = (0.9, 0.9, 1)
-    pos_unc_ratio_specs = (0.05, 0.1, 2)
+    ff_specs            = (1.0, 1.0, 1)
+    pos_unc_ratio_specs = (0.0, 0.0, 1)
     
     # Define ranges
     Delta_range         = range(Delta_specs...)
@@ -74,7 +74,7 @@ function define_system_parameters()
     cut_corners = true
     
     # Number of array instantiations to calculate
-    N_inst = 100
+    N_inst = 1
     
     # Get array and determine number of atoms
     array = get_array(lattice_type, N_sheets, a, L, radius, ff, pos_unc, N_inst, cut_corners)
@@ -84,6 +84,9 @@ function define_system_parameters()
     # fig_array(array[1])
     # fig_array.(array)
     # println(N)
+    
+    # Set up interaction matrix
+    Gnm = get_Gnm.(array, N, Ref(e1))
     
     # The driving is assumed to have polarization e1, as it would only be the corresponding component that contributed to the driving anyway
     # Set type of driving for the case of a finite array ("homogenous" [is not properly normalized for the finite case], "Gaussian")
@@ -97,15 +100,15 @@ function define_system_parameters()
     k_n = 100
     
     # Vector of (normalized) driving amplitude at array sites 
-    drivemode = prepare_drivemode.(drive_type, array, N, w0)
+    drivemode = prepare_drivemode.(drive_type, array, w0)
     
-    # Set the detection mode when calculating the finite array transmission by direct integration ("drive_mode", "intensity_on_detection_plane")
-    detec_mode = "intensity_on_detection_plane"
+    # Set the detection mode when calculating the finite array transmission by direct integration ("drive_mode", "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
+    detec_mode = "integrated_drive_mode"
     
-    # Set the radius of the detection plane for detec_mode = "intensity_on_detection_plane"
+    # Set the radius of the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     detec_radius = radius*a/2
     
-    # Set z-position of detector for the case of detec_mode = "intensity_on_detection_plane"
+    # Set z-position of detector (for detec_mode = "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     if N_sheets == 1
         detec_z = 1.0
     elseif N_sheets == 2
@@ -114,6 +117,16 @@ function define_system_parameters()
     else
         detec_z = 5.0
     end
+    
+    # Set the the plane at which we calculate the transmission by integration
+    x_range = range(-2*radius*a, 2*radius*a, 31)
+    y_range = deepcopy(x_range)
+    integration_plane = [[x, y, detec_z] for x in x_range, y in y_range]
+    dx = x_range[2] - x_range[1]
+    dy = y_range[2] - y_range[1]
+    
+    # Set the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
+    detection_plane = [r for r in integration_plane if r[1]^2 + r[2]^2 <= detec_radius^2]
     
     
     return (a_dimensionfull=a_dimensionfull, L_dimensionfull=L_dimensionfull,
@@ -127,10 +140,11 @@ function define_system_parameters()
             e1=e1, e1_label=e1_label,
             lattice_type=lattice_type, N_sheets=N_sheets, ff=ff, pos_unc_ratio=pos_unc_ratio, pos_unc=pos_unc, 
             radius=radius, cut_corners=cut_corners, N_inst=N_inst, array=array,
-            N=N,
+            N=N, Gnm=Gnm,
             drive_type=drive_type, w0_ratio=w0_ratio, w0=w0,
             k_n=k_n,
-            drivemode=drivemode, detec_mode=detec_mode, detec_radius=detec_radius, detec_z=detec_z)
+            drivemode=drivemode, detec_mode=detec_mode, detec_radius=detec_radius, detec_z=detec_z,
+            integration_plane=integration_plane, dx=dx, dy=dy, detection_plane=detection_plane)
 end
 
 
@@ -140,8 +154,9 @@ function main()
     
     
     # Make figures
-    # make_tscan_fig(SP)
-    make_tscan_comparison_fig(SP)
+    scan_transCoef_fin(SP)
+    # make_Tscan_fig(SP)
+    make_Tscan_comparison_fig(SP)
     # fig_Efield_intensity(SP)
     # fig_Efield_intensity_3D(SP)
         
@@ -152,37 +167,28 @@ end
 # ================================================
 #   Generate figures
 # ================================================
-function make_tscan_fig(SP)
+function make_Tscan_fig(SP)
     # Perform the scan
-    tscan = scan_transmission_fin(SP)
-    
-    # Calculate Tscan
-    if SP.detec_mode == "intensity_on_detection_plane"
-        # Here, the object calculated is the transmission coefficient and not the amplitude.
-        # Hence, tscan is already squared and real
-        Tscan = real.(tscan)
-    else
-        Tscan = abs2.(tscan)
-    end
-        
+    Tscan = scan_transCoef_fin(SP)
+       
     # Do statistics on Tscan
-    means, stds = scan_statistics(Tscan)
+    T_means, T_stds = scan_statistics(Tscan)
     
     # Get infinite system, normal-incidence, plane-wave transmission and with the chosen drive
-    # t_inf_k0, t_inf_k = scan_transmission_inf(SP)
+    # t_inf_k0, t_inf_k = scan_transAmpl_inf(SP)
     # T_inf_k0 = abs2.(t_inf_k0)
     # T_inf_k  = abs2.(t_inf_k)
     T_inf_k0 = false
     T_inf_k  = false
     
     
-    # Write a title and plot the tscan
+    # Write a title and plot the Tscan
     # fig_Delta_scan(SP.Delta_range, Tscan, SP)
-    fig_Delta_scan_stats(SP.Delta_range, means, stds, T_inf_k0, T_inf_k, SP)
+    fig_Delta_scan_stats(SP.Delta_range, T_means, T_stds, T_inf_k0, T_inf_k, SP)
 end
 
 
-function make_tscan_comparison_fig(SP)
+function make_Tscan_comparison_fig(SP)
     # Collect pre-calculated scans and perform statistics on each of them
     means = Array{AbstractArray}(undef, SP.ff_specs[3], SP.pos_unc_ratio_specs[3])
     stds  = Array{AbstractArray}(undef, SP.ff_specs[3], SP.pos_unc_ratio_specs[3])
@@ -190,30 +196,18 @@ function make_tscan_comparison_fig(SP)
     for (i, ff) in enumerate(SP.ff_range), (j, pos_unc_ratio) in enumerate(SP.pos_unc_ratio_range)
         # Check if the scan is available and load it
         postfix = get_postfix(SP.lattice_type, SP.N_sheets, SP.radius, SP.cut_corners, SP.a, SP.L, ff, pos_unc_ratio, SP.N_inst, SP.drive_type, SP.w0_ratio, SP.e1_label, SP.detec_mode, SP.detec_radius, SP.detec_z, SP.Delta_specs)
-        filename_ts = "tscan" * postfix
+        filename_ts = "Tscan" * postfix
         
-        data = check_if_already_calculated(save_dir, [filename_ts], ComplexF64)
+        data = check_if_already_calculated(save_dir, [filename_ts])
         if length(data) == 1 
-            tscan = unpack_tscan(data[1]) 
-            
-            # Calculate Tscan
-            if SP.detec_mode == "intensity_on_detection_plane"
-                # Here, the object calculated is the transmission coefficient and not the amplitude.
-                # Hence, tscan is already squared and real
-                Tscan = real.(tscan)
-            else
-                Tscan = abs2.(tscan)
-            end
-            
-            # Do statistics on Tscan
+            Tscan = data[1]
             means[i, j], stds[i, j] = scan_statistics(Tscan)
         else 
             push!(missing_indices, i + SP.ff_specs[3]*(j - 1))
             means[i, j], stds[i, j] = [false], [false]
-            # throw(DomainError(filename_ts, "This file is missing in make_tscan_comparison_fig"))
         end
     end
-    if length(missing_indices) > 0 println("missing_indices ($(length(missing_indices))) : ", join(missing_indices, ",")) end
+    if length(missing_indices) > 0 println("make_Tscan_comparison_fig missing_indices ($(length(missing_indices))) : ", join(missing_indices, ",")) end
     
     # Make the figure
     # fig_Delta_scan_stats_comparison(SP.Delta_range, means, stds, SP)

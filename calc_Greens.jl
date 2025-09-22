@@ -280,7 +280,7 @@ function realspace_GF_matrix(ri, rj)
     if isapprox(r, 0)
         return zeros(ComplexF64, 3,3)
     end
-        
+    
     # Prepare rr^dagger matrix
     rr_hat = r_vec*r_vec'/r^2
     

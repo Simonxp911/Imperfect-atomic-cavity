@@ -191,7 +191,7 @@ function fig_Efield_intensity(SP)
     Δ = tildeDelta - tildeGamma*tan(wa*SP.L)
     
     # Find the steady state coherences
-    σ_ss = calc_σ_ss(Δ, SP.N, SP.Gnm[1], SP.drivemode[1])
+    σ_ss = calc_σ_ss(Δ, SP.Gnm[1], SP.drivemode[1])
     
     # Define x, y, and z ranges for the plot
     x_range = range(-3*SP.radius*SP.a, 3*SP.radius*SP.a, 101)
@@ -257,7 +257,7 @@ function fig_Efield_intensity_3D(SP)
     Δ = tildeDelta - tildeGamma*tan(wa*SP.L)
     
     # Find the steady state coherences
-    σ_ss = calc_σ_ss(Δ, SP.N, SP.Gnm[1], SP.drivemode[1])
+    σ_ss = calc_σ_ss(Δ, SP.Gnm[1], SP.drivemode[1])
     
     # Define x, y, and z ranges for the plot
     n = 101
