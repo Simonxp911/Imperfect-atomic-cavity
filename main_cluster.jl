@@ -85,10 +85,9 @@ function define_system_parameters()
     
     # Get array and determine number of atoms
     array = get_array(lattice_type, N_sheets, a, L, radius, ff, pos_unc, N_inst, cut_corners)
-    # array = [0.5*radius*a*randn.(fill(3, N)) for N in length.(array)]
     N = length(array[1])
     
-    # Vector of interaction matrices
+    # Set up interaction matrix
     Gnm = get_Gnm.(array, N, e1)
     
     # The driving is assumed to have polarization e1, as it would only be the corresponding component that contributed to the driving anyway
@@ -105,13 +104,13 @@ function define_system_parameters()
     # Vector of (normalized) driving amplitude at array sites 
     drivemode = prepare_drivemode.(drive_type, array, w0)
     
-    # Set the detection mode when calculating the finite array transmission by direct integration ("drive_mode", "intensity_on_detection_plane")
+    # Set the detection mode when calculating the finite array transmission by direct integration ("drive_mode", "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     detec_mode                  = read_input(input, "detec_mode", "String")
     
-    # Set the radius of the detection plane for detec_mode = "intensity_on_detection_plane"
+    # Set the radius of the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     detec_radius = radius*a/2
     
-    # Set z-position of detector for the case of detec_mode = "intensity_on_detection_plane"
+    # Set z-position of detector (for detec_mode = "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     if N_sheets == 1
         detec_z = 1.0
     elseif N_sheets == 2
@@ -120,11 +119,24 @@ function define_system_parameters()
         detec_z = 5.0
     end
     
-    x_range = range(-2*SP.radius*SP.a, 2*SP.radius*SP.a, 31)
+    # Set the the plane at which we calculate the transmission by integration
+    x_range = range(-2*radius*a, 2*radius*a, 31)
     y_range = deepcopy(x_range)
-    integration_plane = [[x, y, SP.detec_z] for x in x_range, y in y_range]
+    integration_plane = [[x, y, detec_z] for x in x_range, y in y_range]
     dx = x_range[2] - x_range[1]
     dy = y_range[2] - y_range[1]
+    
+    # Set the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
+    detection_plane = [r for r in integration_plane if r[1]^2 + r[2]^2 <= detec_radius^2]
+    
+    # Get the necessary Green's function values to calculate the E-field on the integration or detection plane
+    if detec_mode ∈ ("integrated_drive_mode",)
+        Gmat_rn_plane = [get_Gmat_rn.(integration_plane, Ref(arr)) for arr in array]
+    elseif detec_mode ∈ ("flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
+        Gmat_rn_plane = [get_Gmat_rn.(detection_plane, Ref(arr)) for arr in array]
+    else 
+        Gmat_rn_plane = [nothing for arr in array]
+    end
     
     
     return (a_dimensionfull=a_dimensionfull, L_dimensionfull=L_dimensionfull,
@@ -133,13 +145,17 @@ function define_system_parameters()
             L_ratio=L_ratio,
             a=a, L=L,
             Delta_specs=Delta_specs, Delta_range=Delta_range,
+            ff_specs=ff_specs, ff_range=ff_range,
+            pos_unc_ratio_specs=pos_unc_ratio_specs, pos_unc_ratio_range=pos_unc_ratio_range,
             e1=e1, e1_label=e1_label,
             lattice_type=lattice_type, N_sheets=N_sheets, ff=ff, pos_unc_ratio=pos_unc_ratio, pos_unc=pos_unc, 
             radius=radius, cut_corners=cut_corners, N_inst=N_inst, array=array,
             N=N, Gnm=Gnm,
             drive_type=drive_type, w0_ratio=w0_ratio, w0=w0,
             k_n=k_n,
-            drivemode=drivemode, detec_mode=detec_mode, detec_radius=detec_radius, detec_z=detec_z)
+            drivemode=drivemode, detec_mode=detec_mode, detec_radius=detec_radius, detec_z=detec_z,
+            integration_plane=integration_plane, dx=dx, dy=dy, detection_plane=detection_plane,
+            Gmat_rn_plane=Gmat_rn_plane)
 end
 
 
@@ -149,7 +165,7 @@ function main()
     print_SP(SP)
     
     # Make a scan of the transmission of the finite system
-    scan_transmission_fin(SP)
+    scan_transCoef_fin(SP)
         
     return nothing
 end

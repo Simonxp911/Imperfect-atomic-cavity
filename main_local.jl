@@ -62,7 +62,7 @@ function define_system_parameters()
     N_sheets = 2
     
     # Filling fraction 
-    ff = 1.0 - 0.1
+    ff = 1.0 - 0.0
     
     # Gaussian position distribution width
     pos_unc_ratio = 0.0
