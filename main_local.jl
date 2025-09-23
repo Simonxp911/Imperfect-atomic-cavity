@@ -2,7 +2,8 @@
 using LinearAlgebra #norm of vectors and other standard linear algebra
 using JLD2 #saving and loading
 using DelimitedFiles #read/write simple text data files
-using Plots; pythonplot() #plot using Python-Matplotlib as backend
+# using Plots; pythonplot() #plot using Python-Matplotlib as backend
+using GLMakie #plotting
 using Colors #for generating distinguishable colors
 using LaTeXStrings #LaTeX formatting in string in plots
 using Random #for randomly making imperfect lattices
@@ -154,11 +155,11 @@ function main()
     
     
     # Make figures
-    scan_transCoef_fin(SP)
+    # scan_transCoef_fin(SP)
     # make_Tscan_fig(SP)
-    make_Tscan_comparison_fig(SP)
-    # fig_Efield_intensity(SP)
-    # fig_Efield_intensity_3D(SP)
+    # make_Tscan_comparison_fig(SP)
+    # make_Efield_intensity_fig(SP)
+    make_Efield_intensity_3D_fig(SP)
         
     return nothing
 end
@@ -216,7 +217,80 @@ function make_Tscan_comparison_fig(SP)
 end
 
 
+function make_Efield_intensity_fig(SP)
+    # Get collective energies and choose the detuning of perfect transmission
+    Gk = ana_FT_GF(SP.lattice_type, SP.a, SP.e1, SP.e1)
+    tildeDelta = -real(Gk)
+    tildeGamma =  imag(Gk)
+    Δ = tildeDelta - tildeGamma*tan(wa*SP.L)
+    
+    # Find the steady state coherences
+    σ_ss = calc_σ_ss(Δ, SP.Gnm[1], SP.drivemode[1])
+    
+    # Define x, y, and z ranges for the plot
+    n = 101
+    x_range = range(-3*SP.radius*SP.a, 3*SP.radius*SP.a, n)
+    y_range = deepcopy(x_range)
+    z_range = range(-3*SP.L, 3*SP.L, n)
+    
+    # Calculate the E-field intensity (in the xz and the zy planes)
+    intensity_xz = zeros(length(x_range), length(z_range))
+    for (i, x) in enumerate(x_range), (j, z) in enumerate(z_range)
+        r = [x, 0.0, z]
+        
+        # We calculate E-field multiplied by d and divided by incoming amplitude
+        Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
+        
+        intensity_xz[i, j] = Ed'*Ed
+    end
+    
+    intensity_xy = zeros(length(x_range), length(y_range))
+    for (i, x) in enumerate(x_range), (j, y) in enumerate(y_range)
+        r = [x, y, maximum(z_range)]
+        
+        # We calculate E-field multiplied by d and divided by incoming amplitude
+        Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
+        
+        intensity_xy[i, j] = Ed'*Ed
+    end
+    
+    fig_Efield_intensity(x_range, y_range, z_range, intensity_xz, intensity_xy, SP.array[1])
+end
 
+
+function make_Efield_intensity_3D_fig(SP)
+    # Get collective energies and choose the detuning of perfect transmission
+    Gk = ana_FT_GF(SP.lattice_type, SP.a, SP.e1, SP.e1)
+    tildeDelta = -real(Gk)
+    tildeGamma =  imag(Gk)
+    Δ = tildeDelta - tildeGamma*tan(wa*SP.L)
+    
+    # Find the steady state coherences
+    σ_ss = calc_σ_ss(Δ, SP.Gnm[1], SP.drivemode[1])
+    
+    # Define x, y, and z ranges for the plot
+    n = 101
+    x_range = range(-3*SP.radius*SP.a, 3*SP.radius*SP.a, n)
+    y_range = deepcopy(x_range)
+    z_range = range(-5*SP.L, 10*SP.L, n)
+    
+    # Calculate the E-field intensity (in the xz, yz, and xy planes)
+    intensities = [zeros(n, n) for i in 1:4]
+    for i in 1:n, j in 1:n
+        for (r, intensity) in zip(([x_range[i], 0.0, z_range[j]],
+                                   [0.0, y_range[i], z_range[j]],
+                                   [x_range[i], y_range[j], SP.detec_z],
+                                   [x_range[i], y_range[j], z_range[end]]),
+                                   intensities)
+            # We calculate E-field multiplied by d and divided by incoming amplitude
+            Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
+            
+            intensity[i, j] = Ed'*Ed
+        end
+    end
+    
+    fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, SP.array[1], SP.detec_z, SP.detec_radius)
+end
 
 
 println("\n -- Running main() -- \n")
