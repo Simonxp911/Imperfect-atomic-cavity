@@ -113,3 +113,50 @@ end
 function load_as_txt(save_dir, filename, entry_type=Float64)
     return readdlm(save_dir * filename * ".txt", '\t', entry_type, '\n')
 end
+
+
+# ================================================
+#   Functions related to running on the cluster
+# ================================================
+function read_input(input, label, type)
+    # Get index of line to be read
+    if isnothing(findfirst(input .== "# " * label))
+        throw(ArgumentError("The label '# $label' could not be found in the input file."))
+    else
+        index = findfirst(input .== "# " * label) + 1
+    end
+    
+    # SP_indices are read in a special way
+    if label == "SP_indices"
+        return read_SP_indices(input, index)
+    end
+    
+    if type == "String"
+        return input[index]
+    elseif type == "Bool"
+        parse(Bool, input[index])
+    elseif type == "Int"
+        parse(Int, input[index])
+    elseif type == "Float64"
+        parse(Float64, input[index])
+    elseif type == "VectorComplexF64"
+        parse.(ComplexF64, split(input[index], ", "))
+    elseif type == "TupleFlFlInt"
+        Tuple(parse.((Float64, Float64, Int), split(input[index], ", ")))
+    else
+        throw(DomainError(type, "This type has not been implemented for reading in read_input."))
+    end
+end
+
+
+function print_SP(SP)
+    for key in keys(SP) if key ∉ (:a_dimensionfull, :L_dimensionfull, :λ_dimensionfull, :γ_dimensionfull, :c_dimensionfull,
+                                  :Delta_range, :ff_range, :pos_unc_ratio_range,
+                                  :pos_unc, :array, :Gnm, :drivemode,
+                                  :integration_plane, :dx, :dy, :detection_plane, :Gmat_rn_plane,
+                                  :w0)
+            println(key, " = ", SP[key])
+        end
+    end
+end
+

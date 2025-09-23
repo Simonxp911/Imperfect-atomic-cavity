@@ -1,5 +1,6 @@
 
 using LinearAlgebra #norm of vectors and other standard linear algebra
+BLAS.set_num_threads(1)
 using JLD2 #saving and loading
 using DelimitedFiles #read/write simple text data files
 using Random #for randomly making imperfect lattices
@@ -88,7 +89,7 @@ function define_system_parameters()
     N = length(array[1])
     
     # Set up interaction matrix
-    Gnm = get_Gnm.(array, N, e1)
+    Gnm = get_Gnm.(array, N, Ref(e1))
     
     # The driving is assumed to have polarization e1, as it would only be the corresponding component that contributed to the driving anyway
     # Set type of driving for the case of a finite array ("homogenous" [is not properly normalized for the finite case], "Gaussian")
