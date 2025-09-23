@@ -13,21 +13,21 @@ end
 # ================================================
 #   Calculate E-field for finite array
 # ================================================
-function calc_atomic_Efield_fin(r, array, σ_ss, e1)
+function calc_atomic_Efield_fin(r, array, σ_ss, e1, Gmat_rn=nothing)
     # Get the GF matrix (evaluated at r - r_n for each atom n)
-    Gmat_rn = get_Gmat_rn(r, array)
+    if isnothing(Gmat_rn) Gmat_rn = get_Gmat_rn(r, array) end
     
     # Calculate and return the E-field (in units of d, i.e. return Ed)
     return sum(Gmat_rn.*σ_ss) * e1
 end
 
 
-function calc_total_Efield_fin(r, array, σ_ss, drive_type, w0, e1)
+function calc_total_Efield_fin(r, array, σ_ss, drive_type, w0, e1, Gmat_rn=nothing)
     # Incoming E-field (assuming the drive to have e1 as its polarization)
     Ed_in = get_drivemode(drive_type, r, w0)*e1
     
     # Get the atomic contribution to the E-field
-    Ed_at = calc_atomic_Efield_fin(r, array, σ_ss, e1)
+    Ed_at = calc_atomic_Efield_fin(r, array, σ_ss, e1, Gmat_rn)
     
     # Sum the contributions and return (in units of 1/d, i.e. return Ed)
     return Ed_in + Ed_at
@@ -77,7 +77,7 @@ function calc_transAmpl_fin(Δ, array, Gnm, drivemode, SP)
 end
 
 
-function calc_transCoef_fin(Δ, array, Gnm, drivemode, SP)
+function calc_transCoef_fin(Δ, array, Gnm, drivemode, SP, Gmat_rn_plane=nothing)
     if SP.detec_mode ∈ ("drive_mode", "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane")
         return abs2(calc_transAmpl_fin(Δ, array, Gnm, drivemode, SP))
         
@@ -86,7 +86,7 @@ function calc_transCoef_fin(Δ, array, Gnm, drivemode, SP)
         σ_ss = calc_σ_ss(Δ, Gnm, drivemode)
         
         # Calculate E-field and drive on detection plane
-        Ed = calc_total_Efield_fin.(SP.detection_plane, Ref(array), Ref(σ_ss), SP.drive_type, SP.w0, Ref(SP.e1))
+        Ed = calc_total_Efield_fin.(SP.detection_plane, Ref(array), Ref(σ_ss), SP.drive_type, SP.w0, Ref(SP.e1), Gmat_rn_plane)
         drive = get_drivemode.(SP.drive_type, SP.detection_plane, SP.w0) .* Ref(SP.e1)
         
         # The transmission is then calculated as the integral of the product of Ed^\dagger and Ed 
@@ -212,7 +212,8 @@ function scan_transCoef_fin(SP)
                                 reshape(SP.array, SP.N_inst, 1), 
                                 reshape(SP.Gnm, SP.N_inst, 1), 
                                 reshape(SP.drivemode, SP.N_inst, 1),
-                                Ref(SP))
+                                Ref(SP),
+                                reshape(SP.Gmat_rn_plane, SP.N_inst, 1))
     
     # Save the scan
     save_as_txt(Tscan, save_dir, filename_ts)

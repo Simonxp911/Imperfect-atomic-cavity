@@ -62,7 +62,7 @@ function define_system_parameters()
     N_sheets = 2
     
     # Filling fraction 
-    ff = 1.0 - 0.0
+    ff = 1.0 - 0.1
     
     # Gaussian position distribution width
     pos_unc_ratio = 0.0
@@ -75,7 +75,7 @@ function define_system_parameters()
     cut_corners = true
     
     # Number of array instantiations to calculate
-    N_inst = 1
+    N_inst = 5
     
     # Get array and determine number of atoms
     array = get_array(lattice_type, N_sheets, a, L, radius, ff, pos_unc, N_inst, cut_corners)
@@ -104,7 +104,7 @@ function define_system_parameters()
     drivemode = prepare_drivemode.(drive_type, array, w0)
     
     # Set the detection mode when calculating the finite array transmission by direct integration ("drive_mode", "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
-    detec_mode = "integrated_drive_mode"
+    detec_mode = "intensity_on_detection_plane"
     
     # Set the radius of the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     detec_radius = radius*a/2
@@ -129,6 +129,14 @@ function define_system_parameters()
     # Set the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     detection_plane = [r for r in integration_plane if r[1]^2 + r[2]^2 <= detec_radius^2]
     
+    # Get the necessary Green's function values to calculate the E-field on the integration or detection plane
+    if detec_mode ∈ ("integrated_drive_mode",)
+        Gmat_rn_plane = [get_Gmat_rn.(integration_plane, Ref(arr)) for arr in array]
+    elseif detec_mode ∈ ("flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
+        Gmat_rn_plane = [get_Gmat_rn.(detection_plane, Ref(arr)) for arr in array]
+    else 
+        Gmat_rn_plane = [nothing for arr in array]
+    end
     
     return (a_dimensionfull=a_dimensionfull, L_dimensionfull=L_dimensionfull,
             λ_dimensionfull=λ_dimensionfull, γ_dimensionfull=γ_dimensionfull,
@@ -145,7 +153,8 @@ function define_system_parameters()
             drive_type=drive_type, w0_ratio=w0_ratio, w0=w0,
             k_n=k_n,
             drivemode=drivemode, detec_mode=detec_mode, detec_radius=detec_radius, detec_z=detec_z,
-            integration_plane=integration_plane, dx=dx, dy=dy, detection_plane=detection_plane)
+            integration_plane=integration_plane, dx=dx, dy=dy, detection_plane=detection_plane,
+            Gmat_rn_plane=Gmat_rn_plane)
 end
 
 
@@ -155,11 +164,11 @@ function main()
     
     
     # Make figures
-    # scan_transCoef_fin(SP)
+    scan_transCoef_fin(SP)
     # make_Tscan_fig(SP)
     # make_Tscan_comparison_fig(SP)
     # make_Efield_intensity_fig(SP)
-    make_Efield_intensity_3D_fig(SP)
+    # make_Efield_intensity_3D_fig(SP)
         
     return nothing
 end

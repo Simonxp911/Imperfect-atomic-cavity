@@ -24,7 +24,7 @@ function define_system_parameters()
     
     # Slurm task ID
     task_id = parse(Int, ARGS[3])
-    printlnX("TASK_ID = $task_id")
+    println("TASK_ID = $task_id")
     
     
     # Experiment-specific parameters
@@ -121,10 +121,10 @@ function define_system_parameters()
     end
     
     x_range = range(-2*SP.radius*SP.a, 2*SP.radius*SP.a, 31)
-        y_range = deepcopy(x_range)
-        integration_plane = [[x, y, SP.detec_z] for x in x_range, y in y_range]
-        dx = x_range[2] - x_range[1]
-        dy = y_range[2] - y_range[1]
+    y_range = deepcopy(x_range)
+    integration_plane = [[x, y, SP.detec_z] for x in x_range, y in y_range]
+    dx = x_range[2] - x_range[1]
+    dy = y_range[2] - y_range[1]
     
     
     return (a_dimensionfull=a_dimensionfull, L_dimensionfull=L_dimensionfull,
@@ -158,7 +158,7 @@ end
 
 
 
-printlnX("\n -- Running main() -- \n")
+println("\n -- Running main() -- \n")
 @time main()
 
 
