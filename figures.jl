@@ -271,3 +271,5 @@ function fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, array, 
     # Finish figure
     display(GLMakie.Screen(), fig)
 end 
+
+    # save("C:\\Users\\Simon\\Downloads\\FILENAME.png", fig)

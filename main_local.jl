@@ -39,12 +39,12 @@ function define_system_parameters()
     L = L_dimensionfull/λ_dimensionfull #2.046 for L_ratio = 3.0
     
     # Set L manually
-    L = 2.1
+    # L = 6.05
     
     # Specifications for ranges of parameters
-    Delta_specs         = (-2.0, 3.0, 100)
-    ff_specs            = (1.0, 1.0, 1)
-    pos_unc_ratio_specs = (0.0, 0.0, 1)
+    Delta_specs         = (-2.0, 3.0, 500)
+    ff_specs            = (0.9, 0.9, 1)
+    pos_unc_ratio_specs = (0.05, 0.15, 3)
     
     # Define ranges
     Delta_range         = range(Delta_specs...)
@@ -62,10 +62,10 @@ function define_system_parameters()
     N_sheets = 2
     
     # Filling fraction 
-    ff = 1.0 - 0.0
+    ff = 1.0 - 0.1
     
     # Gaussian position distribution width
-    pos_unc_ratio = 0.0
+    pos_unc_ratio = 0.1
     pos_unc = pos_unc_ratio*a
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
@@ -75,7 +75,7 @@ function define_system_parameters()
     cut_corners = true
     
     # Number of array instantiations to calculate
-    N_inst = 5
+    N_inst = 3
     
     # Get array and determine number of atoms
     array = get_array(lattice_type, N_sheets, a, L, radius, ff, pos_unc, N_inst, cut_corners)
@@ -85,9 +85,6 @@ function define_system_parameters()
     # fig_array(array[1])
     # fig_array.(array)
     # println(N)
-    
-    # Set up interaction matrix
-    Gnm = get_Gnm.(array, N, Ref(e1))
     
     # The driving is assumed to have polarization e1, as it would only be the corresponding component that contributed to the driving anyway
     # Set type of driving for the case of a finite array ("homogenous" [is not properly normalized for the finite case], "Gaussian")
@@ -129,15 +126,6 @@ function define_system_parameters()
     # Set the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     detection_plane = [r for r in integration_plane if r[1]^2 + r[2]^2 <= detec_radius^2]
     
-    # Get the necessary Green's function values to calculate the E-field on the integration or detection plane
-    if detec_mode ∈ ("integrated_drive_mode",)
-        Gmat_rn_plane = [get_Gmat_rn.(integration_plane, Ref(arr)) for arr in array]
-    elseif detec_mode ∈ ("flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
-        Gmat_rn_plane = [get_Gmat_rn.(detection_plane, Ref(arr)) for arr in array]
-    else 
-        Gmat_rn_plane = [nothing for arr in array]
-    end
-    
     return (a_dimensionfull=a_dimensionfull, L_dimensionfull=L_dimensionfull,
             λ_dimensionfull=λ_dimensionfull, γ_dimensionfull=γ_dimensionfull,
             c_dimensionfull=c_dimensionfull,
@@ -149,12 +137,11 @@ function define_system_parameters()
             e1=e1, e1_label=e1_label,
             lattice_type=lattice_type, N_sheets=N_sheets, ff=ff, pos_unc_ratio=pos_unc_ratio, pos_unc=pos_unc, 
             radius=radius, cut_corners=cut_corners, N_inst=N_inst, array=array,
-            N=N, Gnm=Gnm,
+            N=N,
             drive_type=drive_type, w0_ratio=w0_ratio, w0=w0,
             k_n=k_n,
             drivemode=drivemode, detec_mode=detec_mode, detec_radius=detec_radius, detec_z=detec_z,
-            integration_plane=integration_plane, dx=dx, dy=dy, detection_plane=detection_plane,
-            Gmat_rn_plane=Gmat_rn_plane)
+            integration_plane=integration_plane, dx=dx, dy=dy, detection_plane=detection_plane)
 end
 
 
@@ -164,8 +151,8 @@ function main()
     
     
     # Make figures
-    scan_transCoef_fin(SP)
-    # make_Tscan_fig(SP)
+    # scan_transCoef_fin(SP)
+    make_Tscan_fig(SP)
     # make_Tscan_comparison_fig(SP)
     # make_Efield_intensity_fig(SP)
     # make_Efield_intensity_3D_fig(SP)
@@ -180,7 +167,7 @@ end
 function make_Tscan_fig(SP)
     # Perform the scan
     Tscan = scan_transCoef_fin(SP)
-       
+    
     # Do statistics on Tscan
     T_means, T_stds = scan_statistics(Tscan)
     
@@ -211,13 +198,14 @@ function make_Tscan_comparison_fig(SP)
         data = check_if_already_calculated(save_dir, [filename_ts])
         if length(data) == 1 
             Tscan = data[1]
+            Tscan = Tscan.^2
             means[i, j], stds[i, j] = scan_statistics(Tscan)
         else 
-            push!(missing_indices, i + SP.ff_specs[3]*(j - 1))
+            push!(missing_indices, (i, j))
             means[i, j], stds[i, j] = [false], [false]
         end
     end
-    if length(missing_indices) > 0 println("make_Tscan_comparison_fig missing_indices ($(length(missing_indices))) : ", join(missing_indices, ",")) end
+    if length(missing_indices) > 0 println("make_Tscan_comparison_fig missing_indices ($(length(missing_indices))) : ", join(missing_indices, ", ")) end
     
     # Make the figure
     # fig_Delta_scan_stats_comparison(SP.Delta_range, means, stds, SP)
@@ -307,3 +295,6 @@ println("\n -- Running main() -- \n")
 
 
 
+# TODO list:
+# also calculate reflection?
+# consider modes of coupling matrix?

@@ -203,17 +203,28 @@ function scan_transCoef_fin(SP)
     # Check if the scan has already been performed
     postfix = get_postfix(SP.lattice_type, SP.N_sheets, SP.radius, SP.cut_corners, SP.a, SP.L, SP.ff, SP.pos_unc_ratio, SP.N_inst, SP.drive_type, SP.w0_ratio, SP.e1_label, SP.detec_mode, SP.detec_radius, SP.detec_z, SP.Delta_specs)
     filename_ts = "Tscan" * postfix
-    data = check_if_already_calculated(save_dir, [filename_ts], ComplexF64)
+    data = check_if_already_calculated(save_dir, [filename_ts])
     if length(data) == 1 return data[1] end
+    
+    # Prepare coupling matrices (to avoid calculation these for each value of detuning)
+    println("Preparing coupling matrices")
+    Gnm = get_Gnm.(SP.array, SP.N, Ref(SP.e1))
+    if SP.detec_mode ∈ ("integrated_drive_mode",)
+        Gmat_rn_plane = [get_Gmat_rn.(SP.integration_plane, Ref(arr)) for arr in SP.array]
+    elseif SP.detec_mode ∈ ("flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
+        Gmat_rn_plane = [get_Gmat_rn.(SP.detection_plane, Ref(arr)) for arr in SP.array]
+    else 
+        Gmat_rn_plane = fill(nothing, SP.N_inst)
+    end
     
     # Perform scan
     println("Performing scan")
     Tscan = calc_transCoef_fin.(reshape(SP.Delta_range, 1, SP.Delta_specs[3]), 
                                 reshape(SP.array, SP.N_inst, 1), 
-                                reshape(SP.Gnm, SP.N_inst, 1), 
+                                reshape(Gnm, SP.N_inst, 1), 
                                 reshape(SP.drivemode, SP.N_inst, 1),
                                 Ref(SP),
-                                reshape(SP.Gmat_rn_plane, SP.N_inst, 1))
+                                reshape(Gmat_rn_plane, SP.N_inst, 1))
     
     # Save the scan
     save_as_txt(Tscan, save_dir, filename_ts)
