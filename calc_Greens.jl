@@ -267,26 +267,50 @@ end
 
 
 function realspace_GF(ri, rj, e1, e2)
-    return e1' * realspace_GF_matrix(ri, rj) * e2
+    # return e1' * realspace_GF_matrix(ri, rj) * e2
+    
+    # [optimized calculation]
+    GF_matrix = realspace_GF_matrix(ri, rj)
+    result = 0.0im
+    for b in 1:3, a in 1:3
+        result += conj(e1[a]) * GF_matrix[a, b] * e2[b]
+    end
+    return result
 end
 
 
 function realspace_GF_matrix(ri, rj)
-    # Calculate relative vector and its norm
-    r_vec = ri - rj
-    r = norm(r_vec)
+    # # Calculate relative vector and its norm
+    # r_vec = ri - rj
+    # r = norm(r_vec)
+    
+    # # If ri == rj return zero (this removes the corresponding terms in sums of the EoMs)
+    # if isapprox(r, 0)
+    #     return zeros(ComplexF64, 3,3)
+    # end
+    
+    # # Prepare rr^dagger matrix
+    # rr_hat = r_vec*r_vec'/r^2
+    
+    # # Calculate GF tensor
+    # GF = exp(1im*wa*r)/(4π*r) * ( (1 + (1im*wa*r - 1)/(wa*r)^2)*I - (1 + 3*(1im*wa*r - 1)/(wa*r)^2)*rr_hat )
+    
+    # # Return the GF
+    # return 6*π/wa*GF
+    
+    
+    # Calculate norm of relative vector [optimized calculation]
+    r = sqrt( (ri[1] - rj[1])^2 + (ri[2] - rj[2])^2 + (ri[3] - rj[3])^2 )
     
     # If ri == rj return zero (this removes the corresponding terms in sums of the EoMs)
     if isapprox(r, 0)
         return zeros(ComplexF64, 3,3)
     end
-    
-    # Prepare rr^dagger matrix
-    rr_hat = r_vec*r_vec'/r^2
-    
-    # Calculate GF tensor
-    GF = exp(1im*wa*r)/(4π*r) * ( (1 + (1im*wa*r - 1)/(wa*r)^2)*I - (1 + 3*(1im*wa*r - 1)/(wa*r)^2)*rr_hat )
-    
-    # Return the GF
-    return 6*π/wa*GF
+
+    # Calculate and return GF tensor [optimized calculation]
+    GF = zeros(ComplexF64, 3, 3)
+    for b in 1:3, a in 1:3
+        GF[a, b] = 6*π/wa*exp(1im*wa*r)/(4π*r) * ( (1 + (1im*wa*r - 1)/(wa*r)^2)*(a == b) - (1 + 3*(1im*wa*r - 1)/(wa*r)^2)*(ri[a] - rj[a])*(ri[b] - rj[b])/r^2)
+    end
+    return GF
 end

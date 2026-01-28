@@ -9,6 +9,7 @@ using LaTeXStrings #LaTeX formatting in string in plots
 using Random #for randomly making imperfect lattices
 using Printf #for formatting strings
 using Statistics #for calculating mean, standard deviation, etc.
+using StatProfilerHTML #profiling the code to see which parts take the most time to run
 
 const wa = 2π
 const save_dir = "C:/Users/Simon/Forskning/Data/imperfect_atomic_cavity_data/"
@@ -39,12 +40,12 @@ function define_system_parameters()
     L = L_dimensionfull/λ_dimensionfull #2.046 for L_ratio = 3.0
     
     # Set L manually
-    # L = 6.05
+    L = 0.5
     
     # Specifications for ranges of parameters
     Delta_specs         = (-2.0, 3.0, 500)
-    ff_specs            = (0.9, 0.9, 1)
-    pos_unc_ratio_specs = (0.05, 0.15, 3)
+    ff_specs            = (0.98, 0.98, 1)
+    pos_unc_ratio_specs = (0.05, 0.1, 2)
     
     # Define ranges
     Delta_range         = range(Delta_specs...)
@@ -59,13 +60,13 @@ function define_system_parameters()
     lattice_type = "square"
     
     # Number of sheets
-    N_sheets = 2
+    N_sheets = 3
     
     # Filling fraction 
-    ff = 1.0 - 0.1
+    ff = 1.0 - 0.0
     
     # Gaussian position distribution width
-    pos_unc_ratio = 0.1
+    pos_unc_ratio = 0.0
     pos_unc = pos_unc_ratio*a
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
@@ -75,7 +76,7 @@ function define_system_parameters()
     cut_corners = true
     
     # Number of array instantiations to calculate
-    N_inst = 3
+    N_inst = 100
     
     # Get array and determine number of atoms
     array = get_array(lattice_type, N_sheets, a, L, radius, ff, pos_unc, N_inst, cut_corners)
@@ -112,6 +113,8 @@ function define_system_parameters()
     elseif N_sheets == 2
         detec_z = L/2 + 1.0
         # detec_z *= -1
+    elseif N_sheets == 3
+        detec_z = L + 1.0
     else
         detec_z = 5.0
     end
@@ -125,6 +128,7 @@ function define_system_parameters()
     
     # Set the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
     detection_plane = [r for r in integration_plane if r[1]^2 + r[2]^2 <= detec_radius^2]
+    
     
     return (a_dimensionfull=a_dimensionfull, L_dimensionfull=L_dimensionfull,
             λ_dimensionfull=λ_dimensionfull, γ_dimensionfull=γ_dimensionfull,
@@ -198,7 +202,6 @@ function make_Tscan_comparison_fig(SP)
         data = check_if_already_calculated(save_dir, [filename_ts])
         if length(data) == 1 
             Tscan = data[1]
-            Tscan = Tscan.^2
             means[i, j], stds[i, j] = scan_statistics(Tscan)
         else 
             push!(missing_indices, (i, j))
@@ -298,3 +301,10 @@ println("\n -- Running main() -- \n")
 # TODO list:
 # also calculate reflection?
 # consider modes of coupling matrix?
+# optimize code...
+
+# use phonon formalism, without phonons - just shift of ground state
+# check for perfect (and near-perfect, 98% and 100%) filling and any L (arbitrarily good parameters except positional uncertainty)
+# use more than 2 layers (just 3 layers) with minimal distance between them (d_{z} = λ/2?)
+    # Read up on multiple layers (Shahmoon, Chang, Ruostekoski?)
+# Run 1.5%-3% pos_unc with 95% filling, L=2.05 and L = 1.02

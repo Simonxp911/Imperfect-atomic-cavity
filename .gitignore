@@ -2,3 +2,4 @@ sbatch_script.sh
 *.out
 Imperfect atomic cavity.code-workspace
 input*
+statprof

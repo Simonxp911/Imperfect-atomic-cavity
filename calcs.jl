@@ -17,8 +17,15 @@ function calc_atomic_Efield_fin(r, array, σ_ss, e1, Gmat_rn=nothing)
     # Get the GF matrix (evaluated at r - r_n for each atom n)
     if isnothing(Gmat_rn) Gmat_rn = get_Gmat_rn(r, array) end
     
-    # Calculate and return the E-field (in units of d, i.e. return Ed)
-    return sum(Gmat_rn.*σ_ss) * e1
+    # # Calculate and return the E-field (in units of d, i.e. return Ed)
+    # return sum(Gmat_rn.*σ_ss) * e1
+    
+    # Calculate and return the E-field (in units of d, i.e. return Ed) [optimized calculation]
+    atomic_Efield_fin = zeros(ComplexF64, 3)
+    for i in 1:3, j in eachindex(σ_ss)
+        atomic_Efield_fin[i] += (Gmat_rn[j][i, 1]*e1[1] + Gmat_rn[j][i, 2]*e1[2] + Gmat_rn[j][i, 3]*e1[3])*σ_ss[j]
+    end
+    return atomic_Efield_fin
 end
 
 
@@ -92,7 +99,7 @@ function calc_transCoef_fin(Δ, array, Gnm, drivemode, SP, Gmat_rn_plane=nothing
         # The transmission is then calculated as the integral of the product of Ed^\dagger and Ed 
         normalization = sum(adjoint.(drive).*drive)*SP.dx*SP.dy
         return real(sum(adjoint.(Ed).*Ed)*SP.dx*SP.dy/normalization)
-              
+    
     else
         throw(DomainError(SP.detec_mode, "This detec_mode has not been implemented in calc_transCoef_fin"))
     end
