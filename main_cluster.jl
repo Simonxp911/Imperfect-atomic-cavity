@@ -42,7 +42,9 @@ function define_system_parameters()
     L = L_dimensionfull/λ_dimensionfull #2.046
     
     # Read L directly from the input
-    L                           = read_input(input, "L", "Float64")
+    if L == 0
+        L                       = read_input(input, "L", "Float64")
+    end
     
     # Specifications for ranges of parameters
     Delta_specs                 = read_input(input, "Delta_specs", "TupleFlFlInt")
@@ -112,13 +114,8 @@ function define_system_parameters()
     detec_radius = radius*a/2
     
     # Set z-position of detector (for detec_mode = "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
-    if N_sheets == 1
-        detec_z = 1.0
-    elseif N_sheets == 2
-        detec_z = L/2 + 1.0
-    else
-        detec_z = 5.0
-    end
+    detec_z = (N_sheets - 1)*L/2 + 1.0
+
     
     # Set the the plane at which we calculate the transmission by integration
     x_range = range(-2*radius*a, 2*radius*a, 31)
