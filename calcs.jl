@@ -50,7 +50,7 @@ function calc_transAmpl_fin(Δ, array, Gnm, drivemode, SP)
     
     if SP.DeP.detec_type == "drive_mode"
         # The transmission amplitude for a paraxial drive and detection in that mode
-        return 1 + 3π*1im/wa^2*drivemode'*σ_ss
+        return 1 + 3π*1im/ωa^2*drivemode'*σ_ss
     
     # The transmission amplitude for some drive and different choices of detection 
     # as calculated by a direct integration of the E-field (the usual analytic expression is only for paraxial detection modes)
@@ -113,7 +113,7 @@ function calc_transAmpl_inf(lattice_type, N_sheets, a, L, Δ, dipoleMoment)
     # k=0 plane-wave component of the emitted light is detected
     
     # Calculate tildeΓ0 directly and get the self-energy
-    tildeΓ0 = 3π/(wa*a)^2
+    tildeΓ0 = 3π/(ωa*a)^2
     Σ0 = -ana_FT_GF(lattice_type, a, dipoleMoment, dipoleMoment, 0.0, 0.0, 0.0, 1e-5)
         
     if N_sheets == 1
@@ -124,7 +124,7 @@ function calc_transAmpl_inf(lattice_type, N_sheets, a, L, Δ, dipoleMoment)
         ΣL = -ana_FT_GF(lattice_type, a, dipoleMoment, dipoleMoment, 0.0, 0.0, L, 1e-5)
         
         # Get the trigonometric factors
-        CL_k = cos(wa*L)
+        CL_k = cos(ωa*L)
         
         # Calculate and return the transmission amplitude
         return 1 - 1im*tildeΓ0*((1 + CL_k)/(Δ - (Σ0 + ΣL)) + (1 - CL_k)/(Δ - (Σ0 - ΣL)))
@@ -143,7 +143,7 @@ function calc_transAmpl_inf(lattice_type, N_sheets, a, L, Δ, dipoleMoment, dipo
     if N_sheets ∉ [1, 2] throw(ArgumentError("N_sheets = $N_sheets has not been implemented in calc_transAmpl_inf")) end
     
     # Calculate tildeΓ0 directly and prepare Σ0 and ΣL
-    tildeΓ0 = 3π/(wa*a)^2
+    tildeΓ0 = 3π/(ωa*a)^2
     Σ0 = prepare_Σ(lattice_type, a, 0.0, k_n, dipoleMoment, dipoleMoment_label)
     if N_sheets == 2 ΣL = prepare_Σ(lattice_type, a, L, k_n, dipoleMoment, dipoleMoment_label) end
     
@@ -158,7 +158,7 @@ function calc_transAmpl_inf(lattice_type, N_sheets, a, L, Δ, dipoleMoment, dipo
         if ky > kx continue end
         
         # Get the squared kz and skip if negative
-        kz2 = wa^2 - kx^2 - ky^2
+        kz2 = ωa^2 - kx^2 - ky^2
         if kz2 < 0 continue end
         
         # Get the drive and skip if it's is small
@@ -174,11 +174,11 @@ function calc_transAmpl_inf(lattice_type, N_sheets, a, L, Δ, dipoleMoment, dipo
         kz = sqrt(kz2)
         
         # Get the polarization overlap factor 
-        pol_overlap = 1 - (kx^2 + ky^2)/(2*wa^2)
+        pol_overlap = 1 - (kx^2 + ky^2)/(2*ωa^2)
         
         if N_sheets == 1
             det = Δ - Σ0[i, j]
-            integrals[1] += mult * drive^2*wa/kz*pol_overlap^2/det
+            integrals[1] += mult * drive^2*ωa/kz*pol_overlap^2/det
             
         elseif N_sheets == 2
             # Get the trigonometric factors
@@ -188,8 +188,8 @@ function calc_transAmpl_inf(lattice_type, N_sheets, a, L, Δ, dipoleMoment, dipo
             det_p = Δ - (Σ0[i, j] + ΣL[i, j])
             det_m = Δ - (Σ0[i, j] - ΣL[i, j])
             
-            integrals[1] += mult * drive^2*wa/kz*pol_overlap^2*(1 + CL_k)/det_p
-            integrals[2] += mult * drive^2*wa/kz*pol_overlap^2*(1 - CL_k)/det_m
+            integrals[1] += mult * drive^2*ωa/kz*pol_overlap^2*(1 + CL_k)/det_p
+            integrals[2] += mult * drive^2*ωa/kz*pol_overlap^2*(1 - CL_k)/det_m
         end
     end
     

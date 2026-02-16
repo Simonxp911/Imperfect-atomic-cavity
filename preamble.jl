@@ -299,6 +299,8 @@ end
 #   Scan parameters
 # ================================================
 struct ScanPar
+    # It is assumed that ScanPar contains only AbstractVectors of ranges to scan over (i.e. no other type of fields)
+    
     N_sheets_range::AbstractVector              # Range of number of atomic sheets
     L_ratio_range::AbstractVector               # Range of L_ratio
     L_range::AbstractVector                     # Range of inter-sheet distance
@@ -353,12 +355,25 @@ function Base.show(io::IO, ScP::ScanPar)
 end
 
 
+function scanLength(ScP::ScanPar)
+    len = 1
+    for key in fieldnames(::ScanPar)
+        len *= length(getfield(ScP, key))
+    end
+    return len
+end
+
+
 # ================================================
 #   Constants
 # ================================================
-const wa = 2π
-const EP_a532 = ExperimentalPar(532, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
-const EP_a370 = ExperimentalPar(370, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
+# const ωa = 2π
+# const EP_a532 = ExperimentalPar(532, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
+# const EP_a370 = ExperimentalPar(370, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
+
+ωa::Float64 = 2π
+EP_a532::ExperimentalPar = ExperimentalPar(532, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
+EP_a370::ExperimentalPar = ExperimentalPar(370, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
 
 
 

@@ -102,10 +102,16 @@ end
 # ================================================
 #   Functions related to driving
 # ================================================
+function prepare_drivemode(drive_type, array, w0)
+    # Prepare real-space mode for driving or detection
+    get_drivemode.(drive_type, array, w0)
+end
+
+
 function get_drivemode(drive_type, r, w0)
     # Get the driving mode evaluated at r
     if drive_type == "homogenous"
-        return exp(1im*wa*r[3]) 
+        return exp(1im*ωa*r[3]) 
     elseif drive_type == "Gaussian"
         return Gaussian(w0, r, true)
     else
@@ -122,8 +128,8 @@ function Gaussian(w0, rvec, normalize_or_not)
     # Calculate components
     zR = π*w0^2
     wz = w0*sqrt(1 + (z/zR)^2)
-    prop_phase = wa*z
-    tran_phase = wa*r2*z/(2*(zR^2 + z^2))
+    prop_phase = ωa*z
+    tran_phase = ωa*r2*z/(2*(zR^2 + z^2))
     Gouy_phase = atan(z/zR)
     
     # Put together components

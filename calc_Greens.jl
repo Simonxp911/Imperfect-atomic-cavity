@@ -23,8 +23,8 @@ end
 function ana_FT_GF_2D_Lzero(lattice_type, a, e1, e2, kx=0.0, ky=0.0, alpha=1e-7)
     # Calculate the self-energy/collective energies of the momentum modes of a planar lattice
     # The real contribution from the origin in the Fourier sum (ri = rj) is excluded (inf. Lamb shift)
-    qx = kx/wa  
-    qy = ky/wa
+    qx = kx/ωa  
+    qy = ky/ωa
     Gk = 0.0 + 0.0im
     summands = Array{ComplexF64}(undef, 0)
     i = 0
@@ -43,7 +43,7 @@ function ana_FT_GF_2D_Lzero(lattice_type, a, e1, e2, kx=0.0, ky=0.0, alpha=1e-7)
         summands = (e1' * e2 .- transpose(e1[1:2]'*kappa) .* kappa'*e2[1:2] .- conj(e1[3])*kappa_z.^2*e2[3])./kappa_z
         
         # Multiply by appropriate exponential
-        summands .*= exp.(-alpha*wa^2*kappa_perp2)
+        summands .*= exp.(-alpha*ωa^2*kappa_perp2)
         
         # Perform sum
         Gk += sum(summands)
@@ -51,11 +51,11 @@ function ana_FT_GF_2D_Lzero(lattice_type, a, e1, e2, kx=0.0, ky=0.0, alpha=1e-7)
     end
     
     # Multiply with front constant to get minus the self-energy
-    Gk *= 3im*π/(wa^2*unit_cell_area)
+    Gk *= 3im*π/(ωa^2*unit_cell_area)
     
-    # Subtract R[G(0, wa)]
-    mat = Diagonal([1/2*(1 - 1/(2*alpha*wa^2)) , 1/2*(1 - 1/(2*alpha*wa^2)) , 1 + 1/(wa*sqrt(π*alpha))])
-    Gk -= 3/(4*wa)*sqrt(π/alpha)*exp(-alpha*wa^2) * (e1' * mat * e2)  
+    # Subtract R[G(0, ωa)]
+    mat = Diagonal([1/2*(1 - 1/(2*alpha*ωa^2)) , 1/2*(1 - 1/(2*alpha*ωa^2)) , 1 + 1/(ωa*sqrt(π*alpha))])
+    Gk -= 3/(4*ωa)*sqrt(π/alpha)*exp(-alpha*ωa^2) * (e1' * mat * e2)  
      
     return Gk
 end
@@ -65,9 +65,9 @@ function ana_FT_GF_2D_Lnonzero(lattice_type, a, e1, e2, L, kx=0.0, ky=0.0)
     # Calculate the self-energy/collective energies of the momentum modes of a planar lattice
     # The real contribution from the origin in the Fourier sum (ri = rj) is excluded (inf. Lamb shift)
     # The calculation assumes the sign of L to be positive
-    qx = kx/wa  
-    qy = ky/wa
-    kpL = wa*L
+    qx = kx/ωa  
+    qy = ky/ωa
+    kpL = ωa*L
     Gk = 0.0 + 0.0im
     summands = Array{ComplexF64}(undef, 0)
     i = 0
@@ -94,7 +94,7 @@ function ana_FT_GF_2D_Lnonzero(lattice_type, a, e1, e2, L, kx=0.0, ky=0.0)
     end
     
     # Multiply with front constant to get minus the self-energy
-    Gk *= 3im*π/(wa^2*unit_cell_area)
+    Gk *= 3im*π/(ωa^2*unit_cell_area)
      
     return Gk
 end
@@ -115,9 +115,9 @@ function ana_FT_GF_2D_matrix(lattice_type, a, kx=0.0, ky=0.0, L=0.0, alpha=1e-7)
     # Calculate the self-energy/collective energies of the momentum modes of a planar lattice
     # The real contribution from the origin in the Fourier sum (ri = rj) is excluded (inf. Lamb shift)
     # The calculation assumes the sign of L to be positive
-    qx = kx/wa  
-    qy = ky/wa
-    kpL = wa*L
+    qx = kx/ωa  
+    qy = ky/ωa
+    kpL = ωa*L
     Gk = fill(0.0 + 0.0im, 3, 3)
     summands = Array{ComplexF64}(undef, 0)
     i = 0
@@ -137,7 +137,7 @@ function ana_FT_GF_2D_matrix(lattice_type, a, kx=0.0, ky=0.0, L=0.0, alpha=1e-7)
         
         # Multiply by appropriate exponential
         if L == 0
-            summands .*= exp.(-alpha*wa^2*kappa_perp2)
+            summands .*= exp.(-alpha*ωa^2*kappa_perp2)
         else
             summands .*= exp.(1j*kappa_z*kpL)
         end
@@ -148,12 +148,12 @@ function ana_FT_GF_2D_matrix(lattice_type, a, kx=0.0, ky=0.0, L=0.0, alpha=1e-7)
     end
     
     # Multiply with front constant to get minus the self-energy
-    Gk *= 3im*π/(wa^2*unit_cell_area)
+    Gk *= 3im*π/(ωa^2*unit_cell_area)
     
     if L == 0
-        # Subtract R[G(0, wa)]
-        mat = Diagonal([1/2*(1 - 1/(2*alpha*wa^2)) , 1/2*(1 - 1/(2*alpha*wa^2)) , 1 + 1/(wa*sqrt(π*alpha))])
-        Gk -= 3/(4*wa)*sqrt(π/alpha)*exp(-alpha*wa^2) * mat
+        # Subtract R[G(0, ωa)]
+        mat = Diagonal([1/2*(1 - 1/(2*alpha*ωa^2)) , 1/2*(1 - 1/(2*alpha*ωa^2)) , 1 + 1/(ωa*sqrt(π*alpha))])
+        Gk -= 3/(4*ωa)*sqrt(π/alpha)*exp(-alpha*ωa^2) * mat
         
         # Set xy and yz entries to zero (the above approach/formulas don't find the correct result for these specific entries)
         Gk[[3, 6, 7, 8]] .= 0
@@ -224,20 +224,20 @@ end
 function ana_tildeDeltas_1D(a, kx=0.0)
     # # Calculate the self-energy/collective energies of the momentum modes of a 1D (linear) lattice
     tildeDelta_para = real( 
-                            -          ( polylog(3, exp(1im*(wa + kx)*a)) + polylog(3, exp(1im*(wa - kx)*a)) )
-                            + 1im*wa*a*( polylog(2, exp(1im*(wa + kx)*a)) + polylog(2, exp(1im*(wa - kx)*a)) )
+                            -          ( polylog(3, exp(1im*(ωa + kx)*a)) + polylog(3, exp(1im*(ωa - kx)*a)) )
+                            + 1im*ωa*a*( polylog(2, exp(1im*(ωa + kx)*a)) + polylog(2, exp(1im*(ωa - kx)*a)) )
                           )
     
     tildeDelta_perp = real( 
-                                         polylog(3, exp(1im*(wa + kx)*a)) + polylog(3, exp(1im*(wa - kx)*a)) 
-                            - 1im*wa*a*( polylog(2, exp(1im*(wa + kx)*a)) + polylog(2, exp(1im*(wa - kx)*a)) )
-                            - wa^2*a^2*( polylog(1, exp(1im*(wa + kx)*a)) + polylog(1, exp(1im*(wa - kx)*a)) )
+                                         polylog(3, exp(1im*(ωa + kx)*a)) + polylog(3, exp(1im*(ωa - kx)*a)) 
+                            - 1im*ωa*a*( polylog(2, exp(1im*(ωa + kx)*a)) + polylog(2, exp(1im*(ωa - kx)*a)) )
+                            - ωa^2*a^2*( polylog(1, exp(1im*(ωa + kx)*a)) + polylog(1, exp(1im*(ωa - kx)*a)) )
                           )
     
     
     # Multiply with front constant to get minus the self-energy
-    tildeDelta_para *= 3/(wa^3*a^3)
-    tildeDelta_perp *= 3/(2*wa^3*a^3)
+    tildeDelta_para *= 3/(ωa^3*a^3)
+    tildeDelta_perp *= 3/(2*ωa^3*a^3)
     
     return tildeDelta_para, tildeDelta_perp
 end
@@ -250,17 +250,17 @@ function ana_tildeGammas_1D(a, kx=0.0)
     q0 = 2*π/a
     m = 0
     
-    while abs(kx + q0*m) ≤ wa        
+    while abs(kx + q0*m) ≤ ωa        
         # Perform sum
-        tildeGamma_para += 1 - (kx + q0*m)^2/wa^2
-        tildeGamma_perp += 1 + (kx + q0*m)^2/wa^2
+        tildeGamma_para += 1 - (kx + q0*m)^2/ωa^2
+        tildeGamma_perp += 1 + (kx + q0*m)^2/ωa^2
         
         m += 1
     end
     
     # Multiply with front constant to get minus the self-energy
-    tildeGamma_para *= 3*π/(2*wa*a)
-    tildeGamma_perp *= 3*π/(4*wa*a)
+    tildeGamma_para *= 3*π/(2*ωa*a)
+    tildeGamma_perp *= 3*π/(4*ωa*a)
     
     return tildeGamma_para, tildeGamma_perp
 end
@@ -293,10 +293,10 @@ function realspace_GF_matrix(ri, rj)
     # rr_hat = r_vec*r_vec'/r^2
     
     # # Calculate GF tensor
-    # GF = exp(1im*wa*r)/(4π*r) * ( (1 + (1im*wa*r - 1)/(wa*r)^2)*I - (1 + 3*(1im*wa*r - 1)/(wa*r)^2)*rr_hat )
+    # GF = exp(1im*ωa*r)/(4π*r) * ( (1 + (1im*ωa*r - 1)/(ωa*r)^2)*I - (1 + 3*(1im*ωa*r - 1)/(ωa*r)^2)*rr_hat )
     
     # # Return the GF
-    # return 6*π/wa*GF
+    # return 6*π/ωa*GF
     
     
     # Calculate norm of relative vector [optimized calculation]
@@ -310,7 +310,7 @@ function realspace_GF_matrix(ri, rj)
     # Calculate and return GF tensor [optimized calculation]
     GF = zeros(ComplexF64, 3, 3)
     for b in 1:3, a in 1:3
-        GF[a, b] = 6*π/wa*exp(1im*wa*r)/(4π*r) * ( (1 + (1im*wa*r - 1)/(wa*r)^2)*(a == b) - (1 + 3*(1im*wa*r - 1)/(wa*r)^2)*(ri[a] - rj[a])*(ri[b] - rj[b])/r^2)
+        GF[a, b] = 6*π/ωa*exp(1im*ωa*r)/(4π*r) * ( (1 + (1im*ωa*r - 1)/(ωa*r)^2)*(a == b) - (1 + 3*(1im*ωa*r - 1)/(ωa*r)^2)*(ri[a] - rj[a])*(ri[b] - rj[b])/r^2)
     end
     return GF
 end

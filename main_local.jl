@@ -24,15 +24,15 @@ function define_SP()
     a = NaN
     
     # Inter-sheet distance
-    L = 1.321
     L_ratio = 1
+    L = NaN
     
     # Filling fraction 
     ff = 1.0 - 0.05
     
     # Gaussian position distribution width
-    pos_unc = NaN
     pos_unc_ratio = 0.05
+    pos_unc = NaN
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
     radius = 6.0
@@ -92,7 +92,7 @@ function main()
     
     # Make figures
     # scan_transCoef_fin(SP)
-    make_Tscan_fig(SP)
+    # make_Tscan_fig(SP)
     # make_Tscan_comparison_fig(SP, ScP)
     # make_Efield_intensity_fig(SP)
     # make_Efield_intensity_3D_fig(SP)
@@ -158,7 +158,7 @@ function make_Efield_intensity_fig(SP)
     Gk = ana_FT_GF(SP.AP.lattice_type, SP.AP.a, SP.EP.dipoleMoment, SP.EP.dipoleMoment)
     tildeDelta = -real(Gk)
     tildeGamma =  imag(Gk)
-    Δ = tildeDelta - tildeGamma*tan(wa*SP.AP.L)
+    Δ = tildeDelta - tildeGamma*tan(ωa*SP.AP.L)
     
     # Find the steady state coherences
     Gnm = get_Gnm.(SP.AP.array, SP.AP.N, Ref(SP.EP.dipoleMoment))
@@ -200,7 +200,7 @@ function make_Efield_intensity_3D_fig(SP)
     Gk = ana_FT_GF(SP.AP.lattice_type, SP.AP.a, SP.EP.dipoleMoment, SP.EP.dipoleMoment)
     tildeDelta = -real(Gk)
     tildeGamma =  imag(Gk)
-    Δ = tildeDelta - tildeGamma*tan(wa*SP.AP.L)
+    Δ = tildeDelta - tildeGamma*tan(ωa*SP.AP.L)
     
     # Find the steady state coherences
     Gnm = get_Gnm.(SP.AP.array, SP.AP.N, Ref(SP.EP.dipoleMoment))
