@@ -1,163 +1,99 @@
 
-using LinearAlgebra #norm of vectors and other standard linear algebra
-using JLD2 #saving and loading
-using DelimitedFiles #read/write simple text data files
-# using Plots; pythonplot() #plot using Python-Matplotlib as backend
-using GLMakie #plotting
-using Colors #for generating distinguishable colors
-using LaTeXStrings #LaTeX formatting in string in plots
-using Random #for randomly making imperfect lattices
-using Printf #for formatting strings
-using Statistics #for calculating mean, standard deviation, etc.
-using StatProfilerHTML #profiling the code to see which parts take the most time to run
 
-const wa = 2π
+using GLMakie               #for plotting
+using Colors                #for generating distinguishable colors
+using LaTeXStrings          #LaTeX formatting in string in plots
+
 const save_dir = "C:/Users/Simon/Forskning/Data/imperfect_atomic_cavity_data/"
 
-include("calcs.jl")
-include("utility.jl")
-include("calc_Greens.jl")
+include("preamble.jl")
 include("figures.jl")
-include("save_load.jl")
 
 
 # ================================================
 #   Main functions
 # ================================================
-function define_system_parameters()
-    # Experiment-specific parameters
-    a_dimensionfull = 532                #nm  (lattice spacing)
-    # a_dimensionfull = 370                #nm  (lattice spacing)
-    # λ_dimensionfull = 780                #nm  (transition wavelength)
-    λ_dimensionfull = 795                #nm  (transition wavelength)
-    γ_dimensionfull = 2π*6.065           #MHz (excited state decay rate) 
-    c_dimensionfull = 299792458*1e9*1e-6 #nm*MHz (speed of light)
-    L_ratio = 3.0
-    L_dimensionfull = L_ratio*a_dimensionfull  #nm  (inter-sheet distance = lattice spacing times any integer)
-    
-    # Dimesionless equivalents
-    a = a_dimensionfull/λ_dimensionfull #0.682
-    L = L_dimensionfull/λ_dimensionfull #2.046 for L_ratio = 3.0
-    
-    # Set L manually
-    L = 0.5
-    
-    # Specifications for ranges of parameters
-    Delta_specs         = (-2.0, 3.0, 500)
-    ff_specs            = (0.98, 0.98, 1)
-    pos_unc_ratio_specs = (0.05, 0.1, 2)
-    
-    # Define ranges
-    Delta_range         = range(Delta_specs...)
-    ff_range            = range(ff_specs...)
-    pos_unc_ratio_range = range(pos_unc_ratio_specs...)
-    
-    # Polarization vector of atomic transition
-    e1 = [1, 1im, 0]/sqrt(2)
-    e1_label = "rc"
-    
-    # Define lattice_type ("square", "triangular", "linear")
-    lattice_type = "square"
+function define_SP()
+    # Experimental parameters for lattice spacing = 532 nm
+    EP = EP_a532
     
     # Number of sheets
-    N_sheets = 3
+    N_sheets = 2
+    
+    # Lattice spacing 
+    a = NaN
+    
+    # Inter-sheet distance
+    L = 1.321
+    L_ratio = 1
     
     # Filling fraction 
-    ff = 1.0 - 0.0
+    ff = 1.0 - 0.05
     
     # Gaussian position distribution width
-    pos_unc_ratio = 0.0
-    pos_unc = pos_unc_ratio*a
+    pos_unc = NaN
+    pos_unc_ratio = 0.05
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
-    # With radius = 7 and cut_corners = true, we match the experiment (for a single sheet)
-    # With radius = 6.0-6.5 and cut_corners = true, we match the experiment (for two sheets)
     radius = 6.0
     cut_corners = true
     
     # Number of array instantiations to calculate
-    N_inst = 100
+    N_inst = 2
     
-    # Get array and determine number of atoms
-    array = get_array(lattice_type, N_sheets, a, L, radius, ff, pos_unc, N_inst, cut_corners)
-    # array = [0.5*radius*a*randn.(fill(3, N)) for N in length.(array)]
-    # array = [[]]
-    N = length(array[1])
-    # fig_array(array[1])
-    # fig_array.(array)
-    # println(N)
+    # Set array parameters
+    AP = AP_Square(N_sheets, a, L, ff, pos_unc, radius, cut_corners, N_inst, EP; L_ratio=L_ratio, pos_unc_ratio=pos_unc_ratio)
     
-    # The driving is assumed to have polarization e1, as it would only be the corresponding component that contributed to the driving anyway
-    # Set type of driving for the case of a finite array ("homogenous" [is not properly normalized for the finite case], "Gaussian")
-    drive_type = "Gaussian"
-    
-    # Beam waist for Gaussian drive
-    w0_ratio = 5.0
-    w0       = w0_ratio*radius*a
+    # Specifications for detuning range
+    Delta_specs = (-2.0, 3.0, 500)
     
     # Number of k-space points along the positive first axis (for integration over the first octant of the BZ, when calculating transmission of finite beam on infinite array)
     k_n = 100
     
-    # Vector of (normalized) driving amplitude at array sites 
-    drivemode = prepare_drivemode.(drive_type, array, w0)
+    # Beam waist for Gaussian drive
+    w0 = NaN
+    w0_ratio = 5.0
     
-    # Set the detection mode when calculating the finite array transmission by direct integration ("drive_mode", "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
-    detec_mode = "intensity_on_detection_plane"
+    # Set drive parameters
+    DrP = DrP_Gaussian(w0, AP.radius, AP.a, AP.array; w0_ratio=w0_ratio)
     
-    # Set the radius of the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
-    detec_radius = radius*a/2
+    # Set detection parameters
+    DeP = DeP_IntensityDefault(AP.radius, AP.a, AP.N_sheets, AP.L)
     
-    # Set z-position of detector (for detec_mode = "integrated_drive_mode", "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
-    if N_sheets == 1
-        detec_z = 1.0
-    elseif N_sheets == 2
-        detec_z = L/2 + 1.0
-        # detec_z *= -1
-    elseif N_sheets == 3
-        detec_z = L + 1.0
-    else
-        detec_z = 5.0
-    end
+                     
+    return SystemPar(EP,
+                     L_ratio, pos_unc_ratio, AP,
+                     Delta_specs,
+                     k_n,
+                     w0_ratio, DrP,
+                     DeP)
+end
+
+
+function define_ScP()
     
-    # Set the the plane at which we calculate the transmission by integration
-    x_range = range(-2*radius*a, 2*radius*a, 31)
-    y_range = deepcopy(x_range)
-    integration_plane = [[x, y, detec_z] for x in x_range, y in y_range]
-    dx = x_range[2] - x_range[1]
-    dy = y_range[2] - y_range[1]
+    N_sheets_specs      = (2, 3)
+    L_ratio_specs       = (1, 3)
+    L_specs             = (1.0, 2.0, 2)
+    ff_specs            = (0.95, 0.95, 1)
+    pos_unc_ratio_specs = (0.05, 0.1, 2)
     
-    # Set the detection plane (for detec_mode = "flat_mode_on_detection_plane", "incoming_mode_on_detection_plane", "intensity_on_detection_plane")
-    detection_plane = [r for r in integration_plane if r[1]^2 + r[2]^2 <= detec_radius^2]
-    
-    
-    return (a_dimensionfull=a_dimensionfull, L_dimensionfull=L_dimensionfull,
-            λ_dimensionfull=λ_dimensionfull, γ_dimensionfull=γ_dimensionfull,
-            c_dimensionfull=c_dimensionfull,
-            L_ratio=L_ratio,
-            a=a, L=L,
-            Delta_specs=Delta_specs, Delta_range=Delta_range,
-            ff_specs=ff_specs, ff_range=ff_range,
-            pos_unc_ratio_specs=pos_unc_ratio_specs, pos_unc_ratio_range=pos_unc_ratio_range,
-            e1=e1, e1_label=e1_label,
-            lattice_type=lattice_type, N_sheets=N_sheets, ff=ff, pos_unc_ratio=pos_unc_ratio, pos_unc=pos_unc, 
-            radius=radius, cut_corners=cut_corners, N_inst=N_inst, array=array,
-            N=N,
-            drive_type=drive_type, w0_ratio=w0_ratio, w0=w0,
-            k_n=k_n,
-            drivemode=drivemode, detec_mode=detec_mode, detec_radius=detec_radius, detec_z=detec_z,
-            integration_plane=integration_plane, dx=dx, dy=dy, detection_plane=detection_plane)
+    return ScanPar(N_sheets_specs, L_ratio_specs, L_specs, ff_specs, pos_unc_ratio_specs)
 end
 
 
 function main()
     # Define system parameters
-    SP = define_system_parameters()
+    SP  = define_SP()
+    ScP = define_ScP()
+    # show(SP)
+    # show(ScP)
     
     
     # Make figures
     # scan_transCoef_fin(SP)
     make_Tscan_fig(SP)
-    # make_Tscan_comparison_fig(SP)
+    # make_Tscan_comparison_fig(SP, ScP)
     # make_Efield_intensity_fig(SP)
     # make_Efield_intensity_3D_fig(SP)
         
@@ -189,15 +125,15 @@ function make_Tscan_fig(SP)
 end
 
 
-function make_Tscan_comparison_fig(SP)
+function make_Tscan_comparison_fig(SP, ScP)
     # Collect pre-calculated scans and perform statistics on each of them
-    means = Array{AbstractArray}(undef, SP.ff_specs[3], SP.pos_unc_ratio_specs[3])
-    stds  = Array{AbstractArray}(undef, SP.ff_specs[3], SP.pos_unc_ratio_specs[3])
+    means = Array{AbstractArray}(undef, len(ScP.ff_range), len(ScP.pos_unc_ratio_range))
+    stds  = Array{AbstractArray}(undef, len(ScP.ff_range), len(ScP.pos_unc_ratio_range))
     missing_indices = []
-    for (i, ff) in enumerate(SP.ff_range), (j, pos_unc_ratio) in enumerate(SP.pos_unc_ratio_range)
+    for (i, ff) in enumerate(ScP.ff_range), (j, pos_unc_ratio) in enumerate(ScP.pos_unc_ratio_range)
         # Check if the scan is available and load it
-        postfix = get_postfix(SP.lattice_type, SP.N_sheets, SP.radius, SP.cut_corners, SP.a, SP.L, ff, pos_unc_ratio, SP.N_inst, SP.drive_type, SP.w0_ratio, SP.e1_label, SP.detec_mode, SP.detec_radius, SP.detec_z, SP.Delta_specs)
-        filename_ts = "Tscan" * postfix
+        postfix = get_postfix_Tscan(SP.AP.lattice_type, SP.AP.N_sheets, SP.AP.radius, SP.AP.cut_corners, SP.AP.a, SP.AP.L, ff, pos_unc_ratio, SP.AP.N_inst, SP.DrP.drive_type, SP.w0_ratio, SP.EP.dipoleMoment_label, SP.DeP.detec_type, SP.DeP.detec_radius, SP.DeP.detec_z, SP.Delta_specs)
+        filename_ts = "Tscan_" * postfix
         
         data = check_if_already_calculated(save_dir, [filename_ts])
         if length(data) == 1 
@@ -219,19 +155,20 @@ end
 
 function make_Efield_intensity_fig(SP)
     # Get collective energies and choose the detuning of perfect transmission
-    Gk = ana_FT_GF(SP.lattice_type, SP.a, SP.e1, SP.e1)
+    Gk = ana_FT_GF(SP.AP.lattice_type, SP.AP.a, SP.EP.dipoleMoment, SP.EP.dipoleMoment)
     tildeDelta = -real(Gk)
     tildeGamma =  imag(Gk)
-    Δ = tildeDelta - tildeGamma*tan(wa*SP.L)
+    Δ = tildeDelta - tildeGamma*tan(wa*SP.AP.L)
     
     # Find the steady state coherences
-    σ_ss = calc_σ_ss(Δ, SP.Gnm[1], SP.drivemode[1])
+    Gnm = get_Gnm.(SP.AP.array, SP.AP.N, Ref(SP.EP.dipoleMoment))
+    σ_ss = calc_σ_ss(Δ, Gnm[1], SP.DrP.drivemode[1])
     
     # Define x, y, and z ranges for the plot
     n = 101
-    x_range = range(-3*SP.radius*SP.a, 3*SP.radius*SP.a, n)
+    x_range = range(-3*SP.AP.radius*SP.AP.a, 3*SP.AP.radius*SP.AP.a, n)
     y_range = deepcopy(x_range)
-    z_range = range(-3*SP.L, 3*SP.L, n)
+    z_range = range(-3*SP.AP.L, 3*SP.AP.L, n)
     
     # Calculate the E-field intensity (in the xz and the zy planes)
     intensity_xz = zeros(length(x_range), length(z_range))
@@ -239,7 +176,7 @@ function make_Efield_intensity_fig(SP)
         r = [x, 0.0, z]
         
         # We calculate E-field multiplied by d and divided by incoming amplitude
-        Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
+        Ed = calc_total_Efield_fin(r, SP.AP.array[1], σ_ss, SP.DrP.drive_type, SP.DrP.w0, SP.EP.dipoleMoment)
         
         intensity_xz[i, j] = Ed'*Ed
     end
@@ -249,47 +186,48 @@ function make_Efield_intensity_fig(SP)
         r = [x, y, maximum(z_range)]
         
         # We calculate E-field multiplied by d and divided by incoming amplitude
-        Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
+        Ed = calc_total_Efield_fin(r, SP.AP.array[1], σ_ss, SP.DrP.drive_type, SP.DrP.w0, SP.EP.dipoleMoment)
         
         intensity_xy[i, j] = Ed'*Ed
     end
     
-    fig_Efield_intensity(x_range, y_range, z_range, intensity_xz, intensity_xy, SP.array[1])
+    fig_Efield_intensity(x_range, y_range, z_range, intensity_xz, intensity_xy, SP.AP.array[1])
 end
 
 
 function make_Efield_intensity_3D_fig(SP)
     # Get collective energies and choose the detuning of perfect transmission
-    Gk = ana_FT_GF(SP.lattice_type, SP.a, SP.e1, SP.e1)
+    Gk = ana_FT_GF(SP.AP.lattice_type, SP.AP.a, SP.EP.dipoleMoment, SP.EP.dipoleMoment)
     tildeDelta = -real(Gk)
     tildeGamma =  imag(Gk)
-    Δ = tildeDelta - tildeGamma*tan(wa*SP.L)
+    Δ = tildeDelta - tildeGamma*tan(wa*SP.AP.L)
     
     # Find the steady state coherences
-    σ_ss = calc_σ_ss(Δ, SP.Gnm[1], SP.drivemode[1])
+    Gnm = get_Gnm.(SP.AP.array, SP.AP.N, Ref(SP.EP.dipoleMoment))
+    σ_ss = calc_σ_ss(Δ, Gnm[1], SP.DrP.drivemode[1])
     
     # Define x, y, and z ranges for the plot
     n = 101
-    x_range = range(-3*SP.radius*SP.a, 3*SP.radius*SP.a, n)
+    x_range = range(-3*SP.AP.radius*SP.AP.a, 3*SP.AP.radius*SP.AP.a, n)
     y_range = deepcopy(x_range)
-    z_range = range(-5*SP.L, 10*SP.L, n)
+    z_range = range(-5*SP.AP.L, 10*SP.AP.L, n)
     
     # Calculate the E-field intensity (in the xz, yz, and xy planes)
     intensities = [zeros(n, n) for i in 1:4]
     for i in 1:n, j in 1:n
         for (r, intensity) in zip(([x_range[i], 0.0, z_range[j]],
                                    [0.0, y_range[i], z_range[j]],
-                                   [x_range[i], y_range[j], SP.detec_z],
+                                   [x_range[i], y_range[j], SP.DeP.detec_z],
                                    [x_range[i], y_range[j], z_range[end]]),
                                    intensities)
             # We calculate E-field multiplied by d and divided by incoming amplitude
-            Ed = calc_total_Efield_fin(r, SP.array[1], σ_ss, SP.drive_type, SP.w0, SP.e1)
+            Ed = calc_total_Efield_fin(r, SP.AP.array[1], σ_ss, SP.DrP.drive_type, SP.DrP.w0, SP.EP.dipoleMoment)
             
             intensity[i, j] = Ed'*Ed
         end
     end
     
-    fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, SP.array[1], SP.detec_z, SP.detec_radius)
+    fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, SP.AP.array[1], SP.DeP.detec_z, SP.DeP.detec_radius)
 end
 
 
@@ -299,12 +237,30 @@ println("\n -- Running main() -- \n")
 
 
 # TODO list:
-# also calculate reflection?
-# consider modes of coupling matrix?
-# optimize code...
+# Implement phonon formalism
+    # The appropriate functions can be copy-pasted from fiber_array
+    # But because γ_a >> ν_α we would need to include phonons (?) and simulations would be limited in the number of atoms
+# Read up on multiple layers (Shahmoon, Chang, Ruostekoski?)
 
-# use phonon formalism, without phonons - just shift of ground state
-# check for perfect (and near-perfect, 98% and 100%) filling and any L (arbitrarily good parameters except positional uncertainty)
-# use more than 2 layers (just 3 layers) with minimal distance between them (d_{z} = λ/2?)
-    # Read up on multiple layers (Shahmoon, Chang, Ruostekoski?)
-# Run 1.5%-3% pos_unc with 95% filling, L=2.05 and L = 1.02
+# Change format of main_cluster, such that "input" files give define_SP
+    # Use MPI
+    # That will make it easier to do scans over any parameter
+    # Consider making "subclasses" (subtypes? substructs?) to implement having a "standard" instantiation of the SP
+    # and only having to define the parameters which are different from the "standard"
+    # or only being forced to define some of the parameters while others take on standard values unless specifically changed
+    # (Thus, define_SP would become much smaller to write and would exploit OOP or, in this case, being able to make subtypes
+
+# Calculate reflection
+
+# Implement comparison figures where L or N_sheets is the variable (instead of ff or pos_unc)
+    # Plot both transmission and reflection
+
+# Consider
+    # Updating/cleaning up figures
+    # Updating names (like Delta_ vs Δ_)
+
+# Runs:
+    # See David's summary
+    # Make larger comparison of N_sheets = 2, 3, 4, 5
+    # Find out when the bump/peak disappears (as a function of ff and pos_unc) for L = 2.05
+    

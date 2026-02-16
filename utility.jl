@@ -102,12 +102,6 @@ end
 # ================================================
 #   Functions related to driving
 # ================================================
-function prepare_drivemode(drive_type, array, w0)
-    # Prepare real-space mode for driving or detection
-    get_drivemode.(drive_type, array, w0)
-end
-
-
 function get_drivemode(drive_type, r, w0)
     # Get the driving mode evaluated at r
     if drive_type == "homogenous"
@@ -176,10 +170,10 @@ end
 # ================================================
 #   Functions related to the Green's function
 # ================================================
-function get_Gnm(array, N, e1)
+function get_Gnm(array, N, dipoleMoment)
     return realspace_GF.(reshape(array, N, 1), 
                          reshape(array, 1, N), 
-                         Ref(e1), Ref(e1))
+                         Ref(dipoleMoment), Ref(dipoleMoment))
 end
 
 
@@ -188,10 +182,10 @@ function get_Gmat_rn(r, array)
 end
 
 
-function prepare_Σ(lattice_type, a, L, k_n, e1, e1_label)
+function prepare_Σ(lattice_type, a, L, k_n, dipoleMoment, dipoleMoment_label)
     # Check if the Σ0 has already been calculated
-    postfix = get_postfix(lattice_type, a, L, k_n, e1_label)
-    filename_Σ0 = "Sigma0" * postfix
+    postfix = get_postfix_Sigma0(lattice_type, a, L, k_n, dipoleMoment_label)
+    filename_Σ0 = "Sigma0_" * postfix
     data = check_if_already_calculated(save_dir, [filename_Σ0], ComplexF64)
     if length(data) == 1 return data[1] end
     
@@ -204,7 +198,7 @@ function prepare_Σ(lattice_type, a, L, k_n, e1, e1_label)
         if ky > kx continue end
         
         # Calculate and assign self-energy
-        Σ0[i, j] = -ana_FT_GF(lattice_type, a, e1, e1, kx, ky, L, 1e-5)
+        Σ0[i, j] = -ana_FT_GF(lattice_type, a, dipoleMoment, dipoleMoment, kx, ky, L, 1e-5)
         Σ0[j, i] = Σ0[i, j]
     end
     

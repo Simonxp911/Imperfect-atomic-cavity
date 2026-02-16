@@ -37,9 +37,9 @@ end
 
 function fig_Delta_scan(Delta_range, scan, SP)
     # Title and y-label
-    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.lattice_type), $(SP.N_sheets), $(SP.radius), $(SP.cut_corners), $(round(SP.L, sigdigits=4)) \n" *
-           "ff, pos_unc_ratio, N_inst = $(SP.ff), $(SP.pos_unc_ratio), $(SP.N_inst) \n" *
-           "drive, w0_ratio, e1, detec_mode = $(SP.drive_type), $(SP.w0_ratio), $(SP.e1_label), $(SP.detec_mode)"
+    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+           "ff, pos_unc_ratio, N_inst = $(SP.AP.ff), $(SP.pos_unc_ratio), $(SP.AP.N_inst) \n" *
+           "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
     
     # Start figure
     fig = Figure(size=(900, 600))
@@ -60,9 +60,9 @@ end
 
 function fig_Delta_scan_stats(Delta_range, means, stds, T_inf_k0, T_inf_k, SP)
     # Prepare title and y-label
-    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.lattice_type), $(SP.N_sheets), $(SP.radius), $(SP.cut_corners), $(round(SP.L, sigdigits=4)) \n" *
-           "ff, pos_unc_ratio, N_inst = $(SP.ff), $(SP.pos_unc_ratio), $(SP.N_inst) \n" *
-           "drive, w0_ratio, e1, detec_mode = $(SP.drive_type), $(SP.w0_ratio), $(SP.e1_label), $(SP.detec_mode)"
+    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+           "ff, pos_unc_ratio, N_inst = $(SP.AP.ff), $(SP.pos_unc_ratio), $(SP.AP.N_inst) \n" *
+           "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
     
     fig = Figure(size=(900, 600))
     Label(fig[1, 1], titl, tellwidth=false)
@@ -83,7 +83,7 @@ function fig_Delta_scan_stats(Delta_range, means, stds, T_inf_k0, T_inf_k, SP)
         hidexdecorations!(ax2)
     
         lines!(ax2, Delta_range, T_inf_k0, linestyle=:dash, color=:red, linewidth=0.5, label="Inf. array, k=0")
-        lines!(ax2, Delta_range, T_inf_k, linestyle=:dash, color=:black, linewidth=0.5, label="Inf. array, $(SP.drive_type)")
+        lines!(ax2, Delta_range, T_inf_k, linestyle=:dash, color=:black, linewidth=0.5, label="Inf. array, $(SP.DrP.drive_type)")
         axislegend(ax2, position=:lb)
     end
     
@@ -93,10 +93,10 @@ end
 
 function fig_Delta_scan_stats_comparison(Delta_range, means, stds, SP)
     # Prepare colors and make title 
-    colors = distinguishable_colors(SP.ff_specs[3]*SP.pos_unc_ratio_specs[3], [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
-    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.lattice_type), $(SP.N_sheets), $(SP.radius), $(SP.cut_corners), $(round(SP.L, sigdigits=4)) \n" *
-           "N_inst = $(SP.N_inst) \n" *
-           "drive, w0_ratio, e1, detec_mode = $(SP.drive_type), $(SP.w0_ratio), $(SP.e1_label), $(SP.detec_mode)"
+    colors = distinguishable_colors(len(ScP.ff_range)*len(ScP.pos_unc_ratio_range), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
+    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+           "N_inst = $(SP.AP.N_inst) \n" *
+           "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
            
     # Start figure
     fig = Figure(size=(900, 600))
@@ -106,10 +106,10 @@ function fig_Delta_scan_stats_comparison(Delta_range, means, stds, SP)
                ylabel=L"Transmission coefficient, $ T=|t|^2 $")
     
     # Plot the finite system scan statistics
-    for (j, pos_unc_ratio) in enumerate(SP.pos_unc_ratio_range)
-        for (i, ff) in enumerate(SP.ff_range)
-            lines!(ax1, Delta_range, means[i, j], color=colors[i + (j-1)*SP.ff_specs[3]], label=L"$ ff = %$(round(ff, sigdigits=2)) $, pos_unc $ = %$(round(pos_unc_ratio, sigdigits=2)) $")
-            band!( ax1, Delta_range, means[i, j] + stds[i, j], means[i, j] - stds[i, j] , color=colors[i + (j-1)*SP.ff_specs[3]], alpha=0.35)
+    for (j, pos_unc_ratio) in enumerate(ScP.pos_unc_ratio_range)
+        for (i, ff) in enumerate(ScP.ff_range)
+            lines!(ax1, Delta_range, means[i, j], color=colors[i + (j-1)*len(ScP.ff_range)], label=L"$ ff = %$(round(ff, sigdigits=2)) $, pos_unc $ = %$(round(pos_unc_ratio, sigdigits=2)) $")
+            band!( ax1, Delta_range, means[i, j] + stds[i, j], means[i, j] - stds[i, j] , color=colors[i + (j-1)*len(ScP.ff_range)], alpha=0.35)
         end
     end
     
@@ -121,21 +121,21 @@ end
 
 function fig_Delta_scan_stats_comparison_fixed_pos_unc(Delta_range, means, stds, SP)
     # Prepare colors 
-    colors = distinguishable_colors(SP.ff_specs[3], [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
+    colors = distinguishable_colors(len(ScP.ff_range), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
     
     # Make a figure for each value of pos_unc_ratio
-    for (j, pos_unc_ratio) in enumerate(SP.pos_unc_ratio_range)
+    for (j, pos_unc_ratio) in enumerate(ScP.pos_unc_ratio_range)
         fig = Figure(size=(900, 600))
-        titl = "lattice_type, N_sheets, radius, cc, L = $(SP.lattice_type), $(SP.N_sheets), $(SP.radius), $(SP.cut_corners), $(round(SP.L, sigdigits=4)) \n" *
-               "pos_unc_ratio, N_inst = $(pos_unc_ratio), $(SP.N_inst) \n" *
-               "drive, w0_ratio, e1, detec_mode = $(SP.drive_type), $(SP.w0_ratio), $(SP.e1_label), $(SP.detec_mode)"
+        titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+               "pos_unc_ratio, N_inst = $(pos_unc_ratio), $(SP.AP.N_inst) \n" *
+               "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
         Label(fig[1, 1], titl, tellwidth=false)
         ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
                 xlabel=L"$ Δ/γ $", 
                 ylabel=L"Transmission coefficient, $ T=|t|^2 $")
         
         # Plot the finite system scan statistics, one for each value of ff
-        for (i, ff) in enumerate(SP.ff_range)
+        for (i, ff) in enumerate(ScP.ff_range)
             lines!(ax1, Delta_range, means[i, j], color=colors[i], label=L"$ ff = %$(round(ff, sigdigits=2)) $")
             band!( ax1, Delta_range, means[i, j] + stds[i, j], means[i, j] - stds[i, j] , color=colors[i], alpha=0.35)
         end
@@ -149,21 +149,21 @@ end
 
 function fig_Delta_scan_stats_comparison_fixed_ff(Delta_range, means, stds, SP)
     # Prepare colors
-    colors = distinguishable_colors(SP.pos_unc_ratio_specs[3], [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
+    colors = distinguishable_colors(len(ScP.pos_unc_ratio_range), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
     
     # Make a figure for each value of pos_unc_ratio
-    for (i, ff) in enumerate(SP.ff_range)
+    for (i, ff) in enumerate(ScP.ff_range)
         fig = Figure(size=(900, 600))
-        titl = "lattice_type, N_sheets, radius, cc, L = $(SP.lattice_type), $(SP.N_sheets), $(SP.radius), $(SP.cut_corners), $(round(SP.L, sigdigits=4)) \n" *
-               "ff, N_inst = $(ff), $(SP.N_inst) \n" *
-               "drive, w0_ratio, e1, detec_mode = $(SP.drive_type), $(SP.w0_ratio), $(SP.e1_label), $(SP.detec_mode)"
+        titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+               "ff, N_inst = $(ff), $(SP.AP.N_inst) \n" *
+               "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
         Label(fig[1, 1], titl, tellwidth=false)
         ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
                 xlabel=L"$ Δ/γ $", 
                 ylabel=L"Transmission coefficient, $ T=|t|^2 $")
         
         # Plot the finite system scan statistics, one for each value of ff
-        for (j, pos_unc_ratio) in enumerate(SP.pos_unc_ratio_range)
+        for (j, pos_unc_ratio) in enumerate(ScP.pos_unc_ratio_range)
             lines!(ax1, Delta_range, means[i, j], color=colors[j], label=L"pos unc ratio $ = %$(round(pos_unc_ratio, sigdigits=2)) $")
             band!( ax1, Delta_range, means[i, j] + stds[i, j], means[i, j] - stds[i, j] , color=colors[j], alpha=0.35)
         end
@@ -188,7 +188,7 @@ function fig_Efield_intensity(x_range, y_range, z_range, intensity_xz, intensity
         fig = Figure(size=(width/height*600, 600))
         
         # Make title and axis
-        # titl = L"$ a = %$(round(SP.a, sigdigits=3)) $, $ L = %$(round(SP.L, sigdigits=3)) $, $ \Delta = %$(round(Δ, sigdigits=3)) $"
+        # titl = L"$ a = %$(round(SP.AP.a, sigdigits=3)) $, $ L = %$(round(SP.AP.L, sigdigits=3)) $, $ \Delta = %$(round(Δ, sigdigits=3)) $"
         Label(fig[1, 1], "title", tellwidth=false)
         Axis(fig[2, 1], limits=(extrema(ranges[1]), extrema(ranges[2])), 
                         xlabel=labels[1], 
@@ -224,7 +224,7 @@ function fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, array, 
     fig = Figure(size=(900, 600))
     
     # Make title and axis
-    # titl = "a = $(round(SP.a, sigdigits=3)), L = $(round(SP.L, sigdigits=3)), Delta = $(round(Δ, sigdigits=3))"
+    # titl = "a = $(round(SP.AP.a, sigdigits=3)), L = $(round(SP.AP.L, sigdigits=3)), Delta = $(round(Δ, sigdigits=3))"
     Label(fig[1, 1], "title", tellwidth=false)
     zWidth  = maximum(z_range) - minimum(z_range)
     xHeight = maximum(x_range) - minimum(x_range)

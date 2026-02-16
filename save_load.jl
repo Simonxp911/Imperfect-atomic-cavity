@@ -41,41 +41,41 @@ function format_Complex_to_String(z)
 end
 
 
-function get_postfix(lattice_type, N_sheets, radius, cut_corners, a, L, ff, pos_unc_ratio, N_inst, drive_type, w0_ratio, e1_label, detec_mode, detec_radius, detec_z, Delta_specs)
+function get_postfix_Tscan(lattice_type, N_sheets, radius, cut_corners, a, L, ff, pos_unc_ratio, N_inst, drive_type, w0_ratio, dipoleMoment_label, detec_type, detec_radius, detec_z, Delta_specs)
     postfix_components = []
     
-    push!(postfix_components, "_$(lattice_type[1:2])_Nsh_$(N_sheets)_r_$(radius)_cc_$(cut_corners)")
-    push!(postfix_components, "_a_$(round(a, sigdigits=4))_L_$(round(L, sigdigits=4))")
-    push!(postfix_components, "_ff_$(round(ff, sigdigits=3))_pur_$(round(pos_unc_ratio, sigdigits=3))_Ni_$(N_inst)")
-    push!(postfix_components, "_dr_$(drive_type[1:4])_w0r_$(w0_ratio)")
-    push!(postfix_components, "_e1_" * e1_label)
-    push!(postfix_components, "_dm_$(detec_mode[1:5])_dr_$(round(detec_radius, sigdigits=4))_dz_$(round(detec_z, sigdigits=4))")
-    push!(postfix_components, "_D_$(join(Delta_specs, ","))")
+    push!(postfix_components, "$(lattice_type[1:2])_Nsh_$(N_sheets)_r_$(radius)_cc_$(cut_corners)")
+    push!(postfix_components, "a_$(round(a, sigdigits=4))_L_$(round(L, sigdigits=4))")
+    push!(postfix_components, "ff_$(round(ff, sigdigits=3))_pur_$(round(pos_unc_ratio, sigdigits=3))_Ni_$(N_inst)")
+    push!(postfix_components, "dr_$(drive_type[1:4])_w0r_$(w0_ratio)")
+    push!(postfix_components, "e1_" * dipoleMoment_label)
+    push!(postfix_components, "dm_$(detec_type[1:5])_dr_$(round(detec_radius, sigdigits=4))_dz_$(round(detec_z, sigdigits=4))")
+    push!(postfix_components, "D_$(join(Delta_specs, ","))")
     
-    return join(postfix_components)
+    return join(postfix_components, "_")
 end
 
 
-function get_postfix(lattice_type, N_sheets, drive_type, w0_ratio, k_n, e1_label, Delta_specs)
+function get_postfix_tscan_inf(lattice_type, N_sheets, drive_type, w0_ratio, k_n, dipoleMoment_label, Delta_specs)
     postfix_components = []
     
-    push!(postfix_components, "_$(lattice_type[1:2])_Nsh_$(N_sheets)")
-    push!(postfix_components, "_dr_$(drive_type[1:4])_w0r_$(w0_ratio)_kn_$(k_n)")
-    push!(postfix_components, "_e1_" * e1_label)
-    push!(postfix_components, "_D_$(join(Delta_specs, ","))")
+    push!(postfix_components, "$(lattice_type[1:2])_Nsh_$(N_sheets)")
+    push!(postfix_components, "dr_$(drive_type[1:4])_w0r_$(w0_ratio)_kn_$(k_n)")
+    push!(postfix_components, "e1_" * dipoleMoment_label)
+    push!(postfix_components, "D_$(join(Delta_specs, ","))")
     
-    return join(postfix_components)
+    return join(postfix_components, "_")
 end
 
 
-function get_postfix(lattice_type, a, L, k_n, e1_label)
+function get_postfix_Sigma0(lattice_type, a, L, k_n, dipoleMoment_label)
     postfix_components = []
     
-    push!(postfix_components, "_$(lattice_type[1:2])")
-    push!(postfix_components, "_a_$(round(a, sigdigits=4))_L_$(round(L, sigdigits=4))")
-    push!(postfix_components, "_kn_$(k_n)_e1_" * e1_label)
+    push!(postfix_components, "$(lattice_type[1:2])")
+    push!(postfix_components, "a_$(round(a, sigdigits=4))_L_$(round(L, sigdigits=4))")
+    push!(postfix_components, "kn_$(k_n)_dipoleMoment_" * dipoleMoment_label)
     
-    return join(postfix_components)
+    return join(postfix_components, "_")
 end
 
 
@@ -112,51 +112,5 @@ end
 
 function load_as_txt(save_dir, filename, entry_type=Float64)
     return readdlm(save_dir * filename * ".txt", '\t', entry_type, '\n')
-end
-
-
-# ================================================
-#   Functions related to running on the cluster
-# ================================================
-function read_input(input, label, type)
-    # Get index of line to be read
-    if isnothing(findfirst(input .== "# " * label))
-        throw(ArgumentError("The label '# $label' could not be found in the input file."))
-    else
-        index = findfirst(input .== "# " * label) + 1
-    end
-    
-    # SP_indices are read in a special way
-    if label == "SP_indices"
-        return read_SP_indices(input, index)
-    end
-    
-    if type == "String"
-        return input[index]
-    elseif type == "Bool"
-        parse(Bool, input[index])
-    elseif type == "Int"
-        parse(Int, input[index])
-    elseif type == "Float64"
-        parse(Float64, input[index])
-    elseif type == "VectorComplexF64"
-        parse.(ComplexF64, split(input[index], ", "))
-    elseif type == "TupleFlFlInt"
-        Tuple(parse.((Float64, Float64, Int), split(input[index], ", ")))
-    else
-        throw(DomainError(type, "This type has not been implemented for reading in read_input."))
-    end
-end
-
-
-function print_SP(SP)
-    for key in keys(SP) if key ∉ (:a_dimensionfull, :L_dimensionfull, :λ_dimensionfull, :γ_dimensionfull, :c_dimensionfull,
-                                  :Delta_range, :ff_range, :pos_unc_ratio_range,
-                                  :pos_unc, :array, :Gnm, :drivemode,
-                                  :integration_plane, :dx, :dy, :detection_plane, :Gmat_rn_plane,
-                                  :w0)
-            println(key, " = ", SP[key])
-        end
-    end
 end
 
