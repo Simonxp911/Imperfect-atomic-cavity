@@ -68,5 +68,9 @@ end
 
 
 
-println("\n -- Running main() -- \n")
-@time main()
+@time begin
+    println("\n -- Running main() on rank $myRank -- \n")
+    main() 
+    println(" -- -- ")
+    println("@time of main() on rank $myRank:")
+end

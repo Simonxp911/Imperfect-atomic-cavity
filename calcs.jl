@@ -205,8 +205,6 @@ end
 #   Make scans of the transmission amplitudes and do statistics for them
 # ================================================
 function scan_transCoef_fin(SP)
-    println("Runnning scan_transCoef_fin")
-    
     # Check if the scan has already been performed
     postfix = get_postfix_Tscan(SP.AP.lattice_type, SP.AP.N_sheets, SP.AP.radius, SP.AP.cut_corners, SP.AP.a, SP.AP.L, SP.AP.ff, SP.pos_unc_ratio, SP.AP.N_inst, SP.DrP.drive_type, SP.w0_ratio, SP.EP.dipoleMoment_label, SP.DeP.detec_type, SP.DeP.detec_radius, SP.DeP.detec_z, SP.Delta_specs)
     filename_ts = "Tscan_" * postfix
@@ -214,7 +212,6 @@ function scan_transCoef_fin(SP)
     if length(data) == 1 return data[1] end
     
     # Prepare coupling matrices (to avoid calculation these for each value of detuning)
-    println("Preparing coupling matrices")
     Gnm = get_Gnm.(SP.AP.array, SP.AP.N, Ref(SP.EP.dipoleMoment))
     if SP.DeP.detec_type ∈ ("integrated_drive_mode",)
         Gmat_rn_plane = [get_Gmat_rn.(SP.DeP.integration_plane, Ref(arr)) for arr in SP.AP.array]
@@ -225,7 +222,6 @@ function scan_transCoef_fin(SP)
     end
     
     # Perform scan
-    println("Performing scan")
     Tscan = calc_transCoef_fin.(reshape(SP.Delta_range, 1, SP.Delta_specs[3]), 
                                 reshape(SP.AP.array, SP.AP.N_inst, 1), 
                                 reshape(Gnm, SP.AP.N_inst, 1), 
@@ -241,8 +237,6 @@ end
 
 
 function scan_transAmpl_inf(SP)
-    println("Runnning scan_transAmpl_inf")
-    
     # Check if the scan has already been performed
     postfix = get_postfix_tscan_inf(SP.AP.lattice_type, SP.AP.N_sheets, SP.DrP.drive_type, SP.w0_ratio, SP.k_n ,SP.EP.dipoleMoment_label, SP.Delta_specs)
     filename_ts_k0 = "tscan_inf_k0_" * postfix
@@ -251,9 +245,7 @@ function scan_transAmpl_inf(SP)
     if length(data) == 2 return unpack_tscan_inf.(data) end
     
     # Perform scan
-    println("Calculating t_inf_k0")
     t_inf_k0 = calc_transAmpl_inf.(SP.AP.lattice_type, SP.AP.N_sheets, SP.AP.a, SP.AP.L, SP.Delta_range, Ref(SP.EP.dipoleMoment))
-    println("Calculating t_inf_k")
     t_inf_k  = calc_transAmpl_inf.(SP.AP.lattice_type, SP.AP.N_sheets, SP.AP.a, SP.AP.L, SP.Delta_range, Ref(SP.EP.dipoleMoment), SP.EP.dipoleMoment_label, SP.DrP.drive_type, SP.DrP.w0, SP.k_n)
     
     

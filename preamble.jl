@@ -365,7 +365,7 @@ end
 
 
 function scanProduct(ScP::ScanPar)
-    return Iterators.product([getfield(ScP, key) for key in fieldnames(ScanPar)])
+    return Iterators.product([getfield(ScP, key) for key in fieldnames(ScanPar)]...)
 end
 
 
