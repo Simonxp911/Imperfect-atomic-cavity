@@ -357,10 +357,15 @@ end
 
 function scanLength(ScP::ScanPar)
     len = 1
-    for key in fieldnames(::ScanPar)
+    for key in fieldnames(ScanPar)
         len *= length(getfield(ScP, key))
     end
     return len
+end
+
+
+function scanProduct(ScP::ScanPar)
+    return Iterators.product([getfield(ScP, key) for key in fieldnames(ScanPar)])
 end
 
 
