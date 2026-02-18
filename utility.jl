@@ -102,25 +102,36 @@ end
 # ================================================
 #   Functions related to driving
 # ================================================
-function prepare_drivemode(drive_type, array, w0)
-    # Prepare real-space mode for driving or detection
-    get_drivemode.(drive_type, array, w0)
+function interpretPropDirec(propDirec)
+    if     propDirec == "forward"  return  1 
+    elseif propDirec == "backward" return -1 
+    else
+        throw(ArgumentError("propDirec = '$propDirec' was not recognized in interpretPropDirec"))
+    end
 end
 
 
-function get_drivemode(drive_type, r, w0)
+function prepare_drivemode(drive_type, array, w0, propDirec)
+    # Prepare real-space mode for driving or detection
+    get_drivemode.(drive_type, array, w0, propDirec)
+end
+
+
+function get_drivemode(drive_type, r, w0, propDirec)
+    pD = interpretPropDirec(propDirec)
+    
     # Get the driving mode evaluated at r
     if drive_type == "homogenous"
-        return exp(1im*ωa*r[3]) 
+        return exp(pD*1im*ωa*r[3]) 
     elseif drive_type == "Gaussian"
-        return Gaussian(w0, r, true)
+        return Gaussian(w0, r, pD, true)
     else
         throw(DomainError(drive_type, "This drive_type has not been implemented in get_drivemode"))
     end
 end
 
 
-function Gaussian(w0, rvec, normalize_or_not)
+function Gaussian(w0, rvec, pD, normalize_or_not)
     # Extract coordinates (squared transverse distance and z)
     r2 = rvec[1]^2 + rvec[2]^2
     z  = rvec[3]
@@ -135,7 +146,7 @@ function Gaussian(w0, rvec, normalize_or_not)
     # Put together components
     width_factor = w0/wz
     Gaussian     = exp(-r2/wz^2)
-    phase        = exp(1im*(prop_phase + tran_phase - Gouy_phase))
+    phase        = exp(pD*1im*(prop_phase + tran_phase - Gouy_phase))
     
     # The mode can be normalized or not
     if normalize_or_not

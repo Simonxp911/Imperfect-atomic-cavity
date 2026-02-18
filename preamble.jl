@@ -146,12 +146,13 @@ end
 struct DrivePar
     drive_type::String                          # Which type of driving 
     w0::Real                                    # Driving width (or beam waist)
+    propDirec::String                           # Propagation direction for the drive
     drivemode::Vector                           # Vector holding the actual drive amplitudes
     
     
-    function DrivePar(drive_type::String, w0::Real, array::Vector)
-        drivemode = prepare_drivemode.(drive_type, array, w0)
-        return new(drive_type, w0, drivemode)
+    function DrivePar(drive_type::String, w0::Real, propDirec::String, array::Vector)
+        drivemode = prepare_drivemode.(drive_type, array, w0, propDirec)
+        return new(drive_type, w0, propDirec, drivemode)
     end
     
 end
@@ -163,7 +164,7 @@ function Base.show(io::IO, DrP::DrivePar)
 end
 
 
-function DrP_Gaussian(w0::Real, radius::Real, a::Real, array::Vector; 
+function DrP_Gaussian(w0::Real, propDirec::String, radius::Real, a::Real, array::Vector; 
                       w0_ratio=nothing)
     
     drive_type = "Gaussian"
@@ -175,7 +176,7 @@ function DrP_Gaussian(w0::Real, radius::Real, a::Real, array::Vector;
         end
     end
     
-    return DrivePar(drive_type, w0, array)
+    return DrivePar(drive_type, w0, propDirec, array)
 end
 
 
@@ -183,15 +184,17 @@ end
 #   Detection parameters
 # ================================================
 struct DetectionPar
-    detec_type::String                          # Which type of detection
+    detec_type::String                          # Which type of detection ("drive_mode", "integrated_drive_mode", "flat_mode_on_detection_plane", "emitted_mode_on_detection_plane", "intensity_on_detection_plane")
     detec_z::Real                               # The distance at which the integration/detection planes are positioned
     integration_plane_n::Int                    # Resolution for the integration plane
     integration_plane_radius::Real              # Radius of the integration plane
-    integration_plane::Matrix                   # Vector of position vectors of the detection plane
+    integration_plane_trans::Matrix             # Vector of position vectors of the detection plane for transmission
+    integration_plane_refl::Matrix              # Vector of position vectors of the detection plane for reflection
     dx::Real                                    # x difference for integration plane
     dy::Real                                    # y difference for integration plane
     detec_radius::Real                          # Radius of the detection plane
-    detection_plane::Vector                     # Vector of position vectors of the detection plane
+    detection_plane_trans::Vector               # Vector of position vectors of the detection plane for transmission
+    detection_plane_refl::Vector                # Vector of position vectors of the detection plane for reflection
     
     
     function DetectionPar(detec_type::String, detec_z::Real,
@@ -199,15 +202,17 @@ struct DetectionPar
                           detec_radius::Real)
         
         x_range = range(-integration_plane_radius, integration_plane_radius, integration_plane_n)
-        integration_plane = [[x, y, detec_z] for x in x_range, y in x_range]
+        integration_plane_trans = [[x, y,  detec_z] for x in x_range, y in x_range]
+        integration_plane_refl  = [[x, y, -detec_z] for x in x_range, y in x_range]
         dx = x_range[2] - x_range[1]
         dy = dx
-        detection_plane = [r for r in integration_plane if r[1]^2 + r[2]^2 <= detec_radius^2]
+        detection_plane_trans = [r for r in integration_plane_trans if r[1]^2 + r[2]^2 <= detec_radius^2]
+        detection_plane_refl  = [r for r in integration_plane_refl  if r[1]^2 + r[2]^2 <= detec_radius^2]
         
         return new(detec_type, detec_z,
-                   integration_plane_n, integration_plane_radius, integration_plane,
+                   integration_plane_n, integration_plane_radius, integration_plane_trans, integration_plane_refl,
                    dx, dy,
-                   detec_radius, detection_plane)
+                   detec_radius, detection_plane_trans, detection_plane_refl)
     end
 end
 

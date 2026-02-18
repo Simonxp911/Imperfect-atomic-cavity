@@ -28,24 +28,24 @@ function define_SP()
     L = NaN
     
     # Filling fraction 
-    ff = 1.0 - 0.05
+    ff = 1.0 - 0.0
     
     # Gaussian position distribution width
-    pos_unc_ratio = 0.05
+    pos_unc_ratio = 0.0
     pos_unc = NaN
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
-    radius = 6.0
+    radius = 2.0
     cut_corners = true
     
     # Number of array instantiations to calculate
-    N_inst = 2
+    N_inst = 1
     
     # Set array parameters
     AP = AP_Square(N_sheets, a, L, ff, pos_unc, radius, cut_corners, N_inst, EP; L_ratio=L_ratio, pos_unc_ratio=pos_unc_ratio)
     
     # Specifications for detuning range
-    Delta_specs = (-2.0, 3.0, 500)
+    Delta_specs = (-2.0, 3.0, 100)
     
     # Number of k-space points along the positive first axis (for integration over the first octant of the BZ, when calculating transmission of finite beam on infinite array)
     k_n = 100
@@ -55,12 +55,13 @@ function define_SP()
     w0_ratio = 5.0
     
     # Set drive parameters
-    DrP = DrP_Gaussian(w0, AP.radius, AP.a, AP.array; w0_ratio=w0_ratio)
+    DrP = DrP_Gaussian(w0, "forward", AP.radius, AP.a, AP.array; w0_ratio=w0_ratio)
     
-    # Set detection parameters
-    DeP = DeP_IntensityDefault(AP.radius, AP.a, AP.N_sheets, AP.L)
+    # Set detection parameters 
+    # DeP = DeP_IntensityDefault(AP.radius, AP.a, AP.N_sheets, AP.L)
     
-                     
+    
+    
     return SystemPar(EP,
                      L_ratio, pos_unc_ratio, AP,
                      Delta_specs,
@@ -91,8 +92,8 @@ function main()
     
     
     # Make figures
-    # scan_transCoef_fin(SP)
-    # make_Tscan_fig(SP)
+    # scan_TRCoef_fin(SP)
+    make_Tscan_fig(SP)
     # make_Tscan_comparison_fig(SP, ScP)
     # make_Efield_intensity_fig(SP)
     # make_Efield_intensity_3D_fig(SP)
@@ -106,22 +107,24 @@ end
 # ================================================
 function make_Tscan_fig(SP)
     # Perform the scan
-    Tscan = scan_transCoef_fin(SP)
+    Tscan, Rscan = scan_TRCoef_fin(SP)
     
     # Do statistics on Tscan
     T_means, T_stds = scan_statistics(Tscan)
+    R_means, R_stds = scan_statistics(Rscan)
     
     # Get infinite system, normal-incidence, plane-wave transmission and with the chosen drive
     # t_inf_k0, t_inf_k = scan_transAmpl_inf(SP)
     # T_inf_k0 = abs2.(t_inf_k0)
     # T_inf_k  = abs2.(t_inf_k)
-    T_inf_k0 = false
-    T_inf_k  = false
+    # T_inf_k0 = false
+    # T_inf_k  = false
     
     
     # Write a title and plot the Tscan
     # fig_Delta_scan(SP.Delta_range, Tscan, SP)
-    fig_Delta_scan_stats(SP.Delta_range, T_means, T_stds, T_inf_k0, T_inf_k, SP)
+    # fig_Delta_scan_stats(SP.Delta_range, T_means, T_stds, T_inf_k0, T_inf_k, SP)
+    fig_Delta_TRscan_stats(SP.Delta_range, T_means, T_stds, R_means, R_stds, SP)
 end
 
 
@@ -242,13 +245,7 @@ println("\n -- Running main() -- \n")
     # But because γ_a >> ν_α we would need to include phonons (?) and simulations would be limited in the number of atoms
 # Read up on multiple layers (Shahmoon, Chang, Ruostekoski?)
 
-# Change format of main_cluster, such that "input" files give define_SP
-    # Use MPI
-    # That will make it easier to do scans over any parameter
-    # Consider making "subclasses" (subtypes? substructs?) to implement having a "standard" instantiation of the SP
-    # and only having to define the parameters which are different from the "standard"
-    # or only being forced to define some of the parameters while others take on standard values unless specifically changed
-    # (Thus, define_SP would become much smaller to write and would exploit OOP or, in this case, being able to make subtypes
+# Ask David how they normalize their transmission 
 
 # Calculate reflection
 

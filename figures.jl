@@ -91,6 +91,32 @@ function fig_Delta_scan_stats(Delta_range, means, stds, T_inf_k0, T_inf_k, SP)
 end
 
 
+function fig_Delta_TRscan_stats(Delta_range, T_means, T_stds, R_means, R_stds, SP)
+    # Prepare title and y-label
+    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+           "ff, pos_unc_ratio, N_inst = $(SP.AP.ff), $(SP.pos_unc_ratio), $(SP.AP.N_inst) \n" *
+           "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
+    
+    fig = Figure(size=(900, 600))
+    Label(fig[1, 1:2], titl, tellwidth=false)
+    ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
+               xlabel=L"$ Δ/γ $", 
+               ylabel=L"Transmission coefficient, $ T=|t|^2 $")
+    ax2 = Axis(fig[2, 2], limits=(extrema(Delta_range)..., 0, 1), 
+               xlabel=L"$ Δ/γ $", 
+               ylabel=L"Reflection coefficient, $ R=|r|^2 $")
+    
+    # Plot 
+    lines!(ax1, Delta_range, T_means, color=:blue)
+    band!( ax1, Delta_range, T_means + T_stds, T_means - T_stds , color=(:blue, 0.35))
+    lines!(ax2, Delta_range, R_means, color=:red)
+    band!( ax2, Delta_range, R_means + R_stds, R_means - R_stds , color=(:red, 0.35))
+    
+    # Finish figure
+    display(GLMakie.Screen(), fig)
+end
+
+
 function fig_Delta_scan_stats_comparison(Delta_range, means, stds, SP)
     # Prepare colors and make title 
     colors = distinguishable_colors(len(ScP.ff_range)*len(ScP.pos_unc_ratio_range), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)

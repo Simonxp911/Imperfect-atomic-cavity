@@ -40,7 +40,7 @@ function performScan(ScP)
         println("My rank is $myRank, I am working on index = $index")
         scanParams = collect(scanProd)[index]
         SP = define_SP(scanParams)
-        scan_transCoef_fin(SP)
+        scan_TRCoef_fin(SP)
     end
 end
 
