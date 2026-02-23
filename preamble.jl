@@ -374,6 +374,32 @@ function scanProduct(ScP::ScanPar)
 end
 
 
+function scanTitlAndLabels(scanProd)
+    fieldLabels = ("N_sh", "L_r", "L", "ff", "pu_r")
+    titlComponents = []
+    indicesForLabels = []
+    labels = Array{String}(undef, size(scanProd))
+    
+    # Add singleton field values to the title unless it is NaN
+    for (i, len) in enumerate(size(scanProd))
+        if len == 1
+            if !isnan(collect(scanProd)[1][i])
+                push!(titlComponents, "$(fieldLabels[i]) = $(collect(scanProd)[1][i])")
+            end
+        else
+            push!(indicesForLabels, i)
+        end
+    end
+    
+    # Field with more values are added to labels
+    for (i, scanParams) in enumerate(scanProd)
+        labels[i] = join(["$(fieldLabels[j]): $(scanParams[j])" for j in indicesForLabels], ", ")
+    end
+    
+    return join(titlComponents, ", "), labels
+end
+
+
 # ================================================
 #   Constants
 # ================================================

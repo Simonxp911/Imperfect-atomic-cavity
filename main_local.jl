@@ -15,7 +15,7 @@ include("figures.jl")
 # ================================================
 function define_SP()
     # Experimental parameters for lattice spacing = 532 nm
-    EP = EP_a532
+    EP = EP_a370
     
     # Number of sheets
     N_sheets = 2
@@ -35,17 +35,17 @@ function define_SP()
     pos_unc = NaN
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
-    radius = 2.0
+    radius = 8.5
     cut_corners = true
     
     # Number of array instantiations to calculate
-    N_inst = 1
+    N_inst = 100
     
     # Set array parameters
     AP = AP_Square(N_sheets, a, L, ff, pos_unc, radius, cut_corners, N_inst, EP; L_ratio=L_ratio, pos_unc_ratio=pos_unc_ratio)
     
     # Specifications for detuning range
-    Delta_specs = (-2.0, 3.0, 100)
+    Delta_specs = (-2.0, 3.0, 500)
     
     # Number of k-space points along the positive first axis (for integration over the first octant of the BZ, when calculating transmission of finite beam on infinite array)
     k_n = 100
@@ -58,7 +58,7 @@ function define_SP()
     DrP = DrP_Gaussian(w0, "forward", AP.radius, AP.a, AP.array; w0_ratio=w0_ratio)
     
     # Set detection parameters 
-    # DeP = DeP_IntensityDefault(AP.radius, AP.a, AP.N_sheets, AP.L)
+    DeP = DeP_IntensityDefault(AP.radius, AP.a, AP.N_sheets, AP.L)
     
     
     
@@ -73,28 +73,89 @@ end
 
 function define_ScP()
     
-    N_sheets_specs      = (2, 3)
-    L_ratio_specs       = (1, 3)
-    L_specs             = (1.0, 2.0, 2)
-    ff_specs            = (0.95, 0.95, 1)
-    pos_unc_ratio_specs = (0.05, 0.1, 2)
+    N_sheets_specs      = (2, 5)
+    L_ratio_specs       = [1]
+    L_specs             = [NaN]
+    ff_specs            = (0.9, 0.95, 2)
+    pos_unc_ratio_specs = (0.035, 0.05, 2)
     
     return ScanPar(N_sheets_specs, L_ratio_specs, L_specs, ff_specs, pos_unc_ratio_specs)
 end
+
+
+function define_SP(scanParams)
+    # N_sheets, L_ratio, L, ff, pos_unc_ratio = scanParams
+    
+    # Experimental parameters for lattice spacing = 532 nm
+    EP = EP_a532
+    
+    # Number of sheets
+    N_sheets = scanParams[1]
+    
+    # Lattice spacing 
+    a = NaN
+    
+    # Inter-sheet distance
+    L_ratio = scanParams[2]
+    L = scanParams[3]
+    
+    # Filling fraction 
+    ff = scanParams[4]
+    
+    # Gaussian position distribution width
+    pos_unc_ratio = scanParams[5]
+    pos_unc = NaN
+        
+    # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
+    radius = 6.0
+    cut_corners = true
+    
+    # Number of array instantiations to calculate
+    N_inst = 100
+    
+    # Set array parameters
+    AP = AP_Square(N_sheets, a, L, ff, pos_unc, radius, cut_corners, N_inst, EP; L_ratio=L_ratio, pos_unc_ratio=pos_unc_ratio)
+    
+    # Specifications for detuning range
+    Delta_specs = (-2.0, 3.0, 500)
+    
+    # Number of k-space points along the positive first axis (for integration over the first octant of the BZ, when calculating transmission of finite beam on infinite array)
+    k_n = 100
+    
+    # Beam waist for Gaussian drive
+    w0 = NaN
+    w0_ratio = 5.0
+    
+    # Set drive parameters
+    DrP = DrP_Gaussian(w0, "forward", AP.radius, AP.a, AP.array; w0_ratio=w0_ratio)
+    
+    # Set detection parameters
+    DeP = DeP_IntensityDefault(AP.radius, AP.a, AP.N_sheets, AP.L)
+    
+                     
+    return SystemPar(EP,
+                     L_ratio, pos_unc_ratio, AP,
+                     Delta_specs,
+                     k_n,
+                     w0_ratio, DrP,
+                     DeP)
+end
+
+
 
 
 function main()
     # Define system parameters
     SP  = define_SP()
     ScP = define_ScP()
-    # show(SP)
+    show(SP)
     # show(ScP)
     
     
     # Make figures
     # scan_TRCoef_fin(SP)
-    make_Tscan_fig(SP)
-    # make_Tscan_comparison_fig(SP, ScP)
+    # make_Tscan_fig(SP)
+    # make_Tscan_comparison_fig(ScP)
     # make_Efield_intensity_fig(SP)
     # make_Efield_intensity_3D_fig(SP)
         
@@ -128,31 +189,34 @@ function make_Tscan_fig(SP)
 end
 
 
-function make_Tscan_comparison_fig(SP, ScP)
+function make_Tscan_comparison_fig(ScP)
     # Collect pre-calculated scans and perform statistics on each of them
-    means = Array{AbstractArray}(undef, len(ScP.ff_range), len(ScP.pos_unc_ratio_range))
-    stds  = Array{AbstractArray}(undef, len(ScP.ff_range), len(ScP.pos_unc_ratio_range))
-    missing_indices = []
-    for (i, ff) in enumerate(ScP.ff_range), (j, pos_unc_ratio) in enumerate(ScP.pos_unc_ratio_range)
-        # Check if the scan is available and load it
-        postfix = get_postfix_Tscan(SP.AP.lattice_type, SP.AP.N_sheets, SP.AP.radius, SP.AP.cut_corners, SP.AP.a, SP.AP.L, ff, pos_unc_ratio, SP.AP.N_inst, SP.DrP.drive_type, SP.w0_ratio, SP.EP.dipoleMoment_label, SP.DeP.detec_type, SP.DeP.detec_radius, SP.DeP.detec_z, SP.Delta_specs)
-        filename_ts = "Tscan_" * postfix
+    scanProd = scanProduct(ScP)
+    SP_rep = nothing
+    T_means = Array{Any}(undef, size(scanProd))
+    T_stds  = deepcopy(T_means)
+    R_means = deepcopy(T_means)
+    R_stds  = deepcopy(T_means)
+    for (i, scanParams) in enumerate(scanProd)
+        SP = define_SP(scanParams)
+        if i == 1 SP_rep = SP end
         
-        data = check_if_already_calculated(save_dir, [filename_ts])
-        if length(data) == 1 
-            Tscan = data[1]
-            means[i, j], stds[i, j] = scan_statistics(Tscan)
-        else 
-            push!(missing_indices, (i, j))
-            means[i, j], stds[i, j] = [false], [false]
-        end
+        Tscan, Rscan = scan_TRCoef_fin(SP)
+        T_means[i], T_stds[i] = scan_statistics(Tscan)
+        R_means[i], R_stds[i] = scan_statistics(Rscan)
     end
-    if length(missing_indices) > 0 println("make_Tscan_comparison_fig missing_indices ($(length(missing_indices))) : ", join(missing_indices, ", ")) end
     
-    # Make the figure
-    # fig_Delta_scan_stats_comparison(SP.Delta_range, means, stds, SP)
-    # fig_Delta_scan_stats_comparison_fixed_pos_unc(SP.Delta_range, means, stds, SP)
-    fig_Delta_scan_stats_comparison_fixed_ff(SP.Delta_range, means, stds, SP)
+    titl, labels = scanTitlAndLabels(scanProd)
+    titl = "lattice_type, radius, cc, N_inst = $(SP_rep.AP.lattice_type), $(SP_rep.AP.radius), $(SP_rep.AP.cut_corners), $(SP_rep.AP.N_inst) \n" *
+           "drive, w0_ratio, dipoleMoment, detec_type = $(SP_rep.DrP.drive_type), $(SP_rep.w0_ratio), $(SP_rep.EP.dipoleMoment_label), $(SP_rep.DeP.detec_type) \n" *
+           titl
+    
+    # Choose which slice of the data to plot
+    # for i in 1:4
+        slice_raw = (1:4, :, :, 2:2, 2:2)
+        slice = CartesianIndices(to_indices(labels, slice_raw))
+        fig_scanStatsComparison(SP_rep.Delta_range, T_means[slice], T_stds[slice], R_means[slice], R_stds[slice], labels[slice], titl)
+    # end
 end
 
 
@@ -247,14 +311,7 @@ println("\n -- Running main() -- \n")
 
 # Ask David how they normalize their transmission 
 
-# Calculate reflection
-
-# Implement comparison figures where L or N_sheets is the variable (instead of ff or pos_unc)
-    # Plot both transmission and reflection
-
-# Consider
-    # Updating/cleaning up figures
-    # Updating names (like Delta_ vs Δ_)
+# Consider cleaning up code (comments, names, )
 
 # Runs:
     # See David's summary

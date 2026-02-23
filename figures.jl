@@ -97,6 +97,7 @@ function fig_Delta_TRscan_stats(Delta_range, T_means, T_stds, R_means, R_stds, S
            "ff, pos_unc_ratio, N_inst = $(SP.AP.ff), $(SP.pos_unc_ratio), $(SP.AP.N_inst) \n" *
            "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
     
+    # Start figure
     fig = Figure(size=(900, 600))
     Label(fig[1, 1:2], titl, tellwidth=false)
     ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
@@ -117,87 +118,30 @@ function fig_Delta_TRscan_stats(Delta_range, T_means, T_stds, R_means, R_stds, S
 end
 
 
-function fig_Delta_scan_stats_comparison(Delta_range, means, stds, SP)
-    # Prepare colors and make title 
-    colors = distinguishable_colors(len(ScP.ff_range)*len(ScP.pos_unc_ratio_range), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
-    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
-           "N_inst = $(SP.AP.N_inst) \n" *
-           "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
-           
-    # Start figure
-    fig = Figure(size=(900, 600))
-    Label(fig[1, 1], titl, tellwidth=false)
+function fig_scanStatsComparison(Delta_range, T_means, T_stds, R_means, R_stds, labels, titl)
+    # Prepare colors
+    colors = distinguishable_colors(length(labels), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
+    
+    #    Start figure
+    fig = Figure(size=(1200, 600))
+    Label(fig[1, 1:2], titl, tellwidth=false)
     ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
                xlabel=L"$ Δ/γ $", 
                ylabel=L"Transmission coefficient, $ T=|t|^2 $")
+    ax2 = Axis(fig[2, 2], limits=(extrema(Delta_range)..., 0, 1), 
+               xlabel=L"$ Δ/γ $", 
+               ylabel=L"Reflection coefficient, $ R=|r|^2 $")
     
-    # Plot the finite system scan statistics
-    for (j, pos_unc_ratio) in enumerate(ScP.pos_unc_ratio_range)
-        for (i, ff) in enumerate(ScP.ff_range)
-            lines!(ax1, Delta_range, means[i, j], color=colors[i + (j-1)*len(ScP.ff_range)], label=L"$ ff = %$(round(ff, sigdigits=2)) $, pos_unc $ = %$(round(pos_unc_ratio, sigdigits=2)) $")
-            band!( ax1, Delta_range, means[i, j] + stds[i, j], means[i, j] - stds[i, j] , color=colors[i + (j-1)*len(ScP.ff_range)], alpha=0.35)
-        end
+    for (i, label) in enumerate(labels)
+        lines!(ax1, Delta_range, T_means[i], color=colors[i], label=label)
+        band!( ax1, Delta_range, T_means[i] + T_stds[i], T_means[i] - T_stds[i] , color=colors[i], alpha=0.35)
+        lines!(ax2, Delta_range, R_means[i], color=colors[i], label=label)
+        band!( ax2, Delta_range, R_means[i] + R_stds[i], R_means[i] - R_stds[i] , color=colors[i], alpha=0.35)
     end
     
     # Finish figure
-    axislegend(ax1, position=:lb)
+    Legend(fig[3, 1:2], ax1, orientation=:horizontal, nbanks=4) 
     display(GLMakie.Screen(), fig)
-end
-
-
-function fig_Delta_scan_stats_comparison_fixed_pos_unc(Delta_range, means, stds, SP)
-    # Prepare colors 
-    colors = distinguishable_colors(len(ScP.ff_range), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
-    
-    # Make a figure for each value of pos_unc_ratio
-    for (j, pos_unc_ratio) in enumerate(ScP.pos_unc_ratio_range)
-        fig = Figure(size=(900, 600))
-        titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
-               "pos_unc_ratio, N_inst = $(pos_unc_ratio), $(SP.AP.N_inst) \n" *
-               "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
-        Label(fig[1, 1], titl, tellwidth=false)
-        ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
-                xlabel=L"$ Δ/γ $", 
-                ylabel=L"Transmission coefficient, $ T=|t|^2 $")
-        
-        # Plot the finite system scan statistics, one for each value of ff
-        for (i, ff) in enumerate(ScP.ff_range)
-            lines!(ax1, Delta_range, means[i, j], color=colors[i], label=L"$ ff = %$(round(ff, sigdigits=2)) $")
-            band!( ax1, Delta_range, means[i, j] + stds[i, j], means[i, j] - stds[i, j] , color=colors[i], alpha=0.35)
-        end
-        
-        # Finish figure
-        axislegend(ax1, position=:lb)
-        display(GLMakie.Screen(), fig)
-    end
-end
-
-
-function fig_Delta_scan_stats_comparison_fixed_ff(Delta_range, means, stds, SP)
-    # Prepare colors
-    colors = distinguishable_colors(len(ScP.pos_unc_ratio_range), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
-    
-    # Make a figure for each value of pos_unc_ratio
-    for (i, ff) in enumerate(ScP.ff_range)
-        fig = Figure(size=(900, 600))
-        titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
-               "ff, N_inst = $(ff), $(SP.AP.N_inst) \n" *
-               "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
-        Label(fig[1, 1], titl, tellwidth=false)
-        ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
-                xlabel=L"$ Δ/γ $", 
-                ylabel=L"Transmission coefficient, $ T=|t|^2 $")
-        
-        # Plot the finite system scan statistics, one for each value of ff
-        for (j, pos_unc_ratio) in enumerate(ScP.pos_unc_ratio_range)
-            lines!(ax1, Delta_range, means[i, j], color=colors[j], label=L"pos unc ratio $ = %$(round(pos_unc_ratio, sigdigits=2)) $")
-            band!( ax1, Delta_range, means[i, j] + stds[i, j], means[i, j] - stds[i, j] , color=colors[j], alpha=0.35)
-        end
-        
-        # Finish figure
-        axislegend(ax1, position=:lb)
-        display(GLMakie.Screen(), fig)
-    end
 end
 
 
