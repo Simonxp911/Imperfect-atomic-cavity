@@ -14,8 +14,8 @@ include("figures.jl")
 #   Main functions
 # ================================================
 function define_SP()
-    # Experimental parameters for lattice spacing = 532 nm
-    EP = EP_a370
+    # Experimental parameters
+    EP = EP_a532
     
     # Number of sheets
     N_sheets = 2
@@ -35,7 +35,7 @@ function define_SP()
     pos_unc = NaN
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
-    radius = 8.5
+    radius = 6.0
     cut_corners = true
     
     # Number of array instantiations to calculate
@@ -73,11 +73,11 @@ end
 
 function define_ScP()
     
-    N_sheets_specs      = (2, 5)
-    L_ratio_specs       = [1]
+    N_sheets_specs      = [2]
+    L_ratio_specs       = [3]
     L_specs             = [NaN]
-    ff_specs            = (0.9, 0.95, 2)
-    pos_unc_ratio_specs = (0.035, 0.05, 2)
+    ff_specs            = (0.9, 0.95, 6)
+    pos_unc_ratio_specs = (0.035, 0.05, 4)
     
     return ScanPar(N_sheets_specs, L_ratio_specs, L_specs, ff_specs, pos_unc_ratio_specs)
 end
@@ -86,8 +86,9 @@ end
 function define_SP(scanParams)
     # N_sheets, L_ratio, L, ff, pos_unc_ratio = scanParams
     
-    # Experimental parameters for lattice spacing = 532 nm
+    # Experimental parameters
     EP = EP_a532
+    # EP = EP_a370
     
     # Number of sheets
     N_sheets = scanParams[1]
@@ -108,6 +109,7 @@ function define_SP(scanParams)
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
     radius = 6.0
+    # radius = 8.5
     cut_corners = true
     
     # Number of array instantiations to calculate
@@ -146,9 +148,9 @@ end
 
 function main()
     # Define system parameters
-    SP  = define_SP()
-    ScP = define_ScP()
-    show(SP)
+    # SP  = define_SP()
+    # ScP = define_ScP()
+    # show(SP)
     # show(ScP)
     
     
@@ -201,21 +203,27 @@ function make_Tscan_comparison_fig(ScP)
         SP = define_SP(scanParams)
         if i == 1 SP_rep = SP end
         
-        Tscan, Rscan = scan_TRCoef_fin(SP)
+        postfix = get_postfix_Tscan(SP.AP.lattice_type, SP.AP.N_sheets, SP.AP.radius, SP.AP.cut_corners, SP.AP.a, SP.AP.L, SP.AP.ff, SP.pos_unc_ratio, SP.AP.N_inst, SP.DrP.drive_type, SP.w0_ratio, SP.EP.dipoleMoment_label, SP.DeP.detec_type, SP.DeP.detec_radius, SP.DeP.detec_z, SP.Delta_specs)
+        filename_Tscan = "Tscan_" * postfix
+        filename_Rscan = "Rscan_" * postfix
+        data = check_if_already_calculated(save_dir, [filename_Tscan, filename_Rscan])
+        if length(data) == 2 Tscan, Rscan = data else throw(ArgumentError("Some files were missin in make_Tscan_comparison_fig")) end
+        # Tscan, Rscan = scan_TRCoef_fin(SP)
+    
         T_means[i], T_stds[i] = scan_statistics(Tscan)
         R_means[i], R_stds[i] = scan_statistics(Rscan)
     end
     
-    titl, labels = scanTitlAndLabels(scanProd)
-    titl = "lattice_type, radius, cc, N_inst = $(SP_rep.AP.lattice_type), $(SP_rep.AP.radius), $(SP_rep.AP.cut_corners), $(SP_rep.AP.N_inst) \n" *
+    title, labels = scantitleAndLabels(scanProd)
+    title = "lattice_type, radius, cc, N_inst = $(SP_rep.AP.lattice_type), $(SP_rep.AP.radius), $(SP_rep.AP.cut_corners), $(SP_rep.AP.N_inst) \n" *
            "drive, w0_ratio, dipoleMoment, detec_type = $(SP_rep.DrP.drive_type), $(SP_rep.w0_ratio), $(SP_rep.EP.dipoleMoment_label), $(SP_rep.DeP.detec_type) \n" *
-           titl
+           title
     
-    # Choose which slice of the data to plot
-    # for i in 1:4
-        slice_raw = (1:4, :, :, 2:2, 2:2)
+    # Choose which slice of the data to plot (N_sheets, L_ratio, L, ff, pos_unc_ratio)
+    # for i in 1:3
+        slice_raw = (:, :, :, :, :)
         slice = CartesianIndices(to_indices(labels, slice_raw))
-        fig_scanStatsComparison(SP_rep.Delta_range, T_means[slice], T_stds[slice], R_means[slice], R_stds[slice], labels[slice], titl)
+        fig_scanStatsComparison(SP_rep.Delta_range, T_means[slice], T_stds[slice], R_means[slice], R_stds[slice], labels[slice], title)
     # end
 end
 
@@ -298,6 +306,9 @@ function make_Efield_intensity_3D_fig(SP)
 end
 
 
+
+
+ 
 println("\n -- Running main() -- \n")
 @time main()
 
@@ -307,14 +318,7 @@ println("\n -- Running main() -- \n")
 # Implement phonon formalism
     # The appropriate functions can be copy-pasted from fiber_array
     # But because γ_a >> ν_α we would need to include phonons (?) and simulations would be limited in the number of atoms
-# Read up on multiple layers (Shahmoon, Chang, Ruostekoski?)
+# Read up on previous works/results for multiple layers (Shahmoon, Chang, Ruostekoski?)
 
-# Ask David how they normalize their transmission 
-
-# Consider cleaning up code (comments, names, )
-
-# Runs:
-    # See David's summary
-    # Make larger comparison of N_sheets = 2, 3, 4, 5
-    # Find out when the bump/peak disappears (as a function of ff and pos_unc) for L = 2.05
-    
+# Figure out how to properly normalize/calculate the reflection
+    # Ask David how they normalize their transmission?

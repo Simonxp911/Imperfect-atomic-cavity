@@ -46,7 +46,11 @@ function get_postfix_Tscan(lattice_type, N_sheets, radius, cut_corners, a, L, ff
     
     push!(postfix_components, "$(lattice_type[1:2])_Nsh_$(N_sheets)_r_$(radius)_cc_$(cut_corners)")
     push!(postfix_components, "a_$(round(a, sigdigits=4))_L_$(round(L, sigdigits=4))")
-    push!(postfix_components, "ff_$(round(ff, sigdigits=3))_pur_$(round(pos_unc_ratio, sigdigits=3))_Ni_$(N_inst)")
+    if length(pos_unc_ratio) == 1
+        push!(postfix_components, "ff_$(round(ff, sigdigits=3))_pur_$(round(pos_unc_ratio, sigdigits=3))_Ni_$(N_inst)")
+    else
+        push!(postfix_components, "ff_$(round(ff, sigdigits=3))_pur_$(join(round.(pos_unc_ratio, sigdigits=3), ","))_Ni_$(N_inst)")
+    end
     push!(postfix_components, "dr_$(drive_type[1:4])_w0r_$(w0_ratio)")
     push!(postfix_components, "e1_" * dipoleMoment_label)
     push!(postfix_components, "dm_$(detec_type[1:5])_dr_$(round(detec_radius, sigdigits=4))_dz_$(round(detec_z, sigdigits=4))")

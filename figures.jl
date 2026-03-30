@@ -37,13 +37,13 @@ end
 
 function fig_Delta_scan(Delta_range, scan, SP)
     # Title and y-label
-    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+    title = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
            "ff, pos_unc_ratio, N_inst = $(SP.AP.ff), $(SP.pos_unc_ratio), $(SP.AP.N_inst) \n" *
            "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
     
     # Start figure
     fig = Figure(size=(900, 600))
-    Label(fig[1, 1], titl, tellwidth=false)
+    Label(fig[1, 1], title, tellwidth=false)
     ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
                xlabel=L"$ Δ/γ $", 
                ylabel=L"Transmission coefficient, $ T=|t|^2 $")
@@ -60,12 +60,12 @@ end
 
 function fig_Delta_scan_stats(Delta_range, means, stds, T_inf_k0, T_inf_k, SP)
     # Prepare title and y-label
-    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+    title = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
            "ff, pos_unc_ratio, N_inst = $(SP.AP.ff), $(SP.pos_unc_ratio), $(SP.AP.N_inst) \n" *
            "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
     
     fig = Figure(size=(900, 600))
-    Label(fig[1, 1], titl, tellwidth=false)
+    Label(fig[1, 1], title, tellwidth=false)
     ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
                xlabel=L"$ Δ/γ $", 
                ylabel=L"Transmission coefficient, $ T=|t|^2 $")
@@ -93,13 +93,13 @@ end
 
 function fig_Delta_TRscan_stats(Delta_range, T_means, T_stds, R_means, R_stds, SP)
     # Prepare title and y-label
-    titl = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
+    title = "lattice_type, N_sheets, radius, cc, L = $(SP.AP.lattice_type), $(SP.AP.N_sheets), $(SP.AP.radius), $(SP.AP.cut_corners), $(round(SP.AP.L, sigdigits=4)) \n" *
            "ff, pos_unc_ratio, N_inst = $(SP.AP.ff), $(SP.pos_unc_ratio), $(SP.AP.N_inst) \n" *
            "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type)"
     
     # Start figure
     fig = Figure(size=(900, 600))
-    Label(fig[1, 1:2], titl, tellwidth=false)
+    Label(fig[1, 1:2], title, tellwidth=false)
     ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
                xlabel=L"$ Δ/γ $", 
                ylabel=L"Transmission coefficient, $ T=|t|^2 $")
@@ -118,13 +118,13 @@ function fig_Delta_TRscan_stats(Delta_range, T_means, T_stds, R_means, R_stds, S
 end
 
 
-function fig_scanStatsComparison(Delta_range, T_means, T_stds, R_means, R_stds, labels, titl)
+function fig_scanStatsComparison(Delta_range, T_means, T_stds, R_means, R_stds, labels, title)
     # Prepare colors
     colors = distinguishable_colors(length(labels), [RGB(1,1,1), RGB(0,0,0)], dropseed=true)
     
     #    Start figure
     fig = Figure(size=(1200, 600))
-    Label(fig[1, 1:2], titl, tellwidth=false)
+    Label(fig[1, 1:2], title, tellwidth=false)
     ax1 = Axis(fig[2, 1], limits=(extrema(Delta_range)..., 0, 1), 
                xlabel=L"$ Δ/γ $", 
                ylabel=L"Transmission coefficient, $ T=|t|^2 $")
@@ -158,7 +158,7 @@ function fig_Efield_intensity(x_range, y_range, z_range, intensity_xz, intensity
         fig = Figure(size=(width/height*600, 600))
         
         # Make title and axis
-        # titl = L"$ a = %$(round(SP.AP.a, sigdigits=3)) $, $ L = %$(round(SP.AP.L, sigdigits=3)) $, $ \Delta = %$(round(Δ, sigdigits=3)) $"
+        # title = L"$ a = %$(round(SP.AP.a, sigdigits=3)) $, $ L = %$(round(SP.AP.L, sigdigits=3)) $, $ \Delta = %$(round(Δ, sigdigits=3)) $"
         Label(fig[1, 1], "title", tellwidth=false)
         Axis(fig[2, 1], limits=(extrema(ranges[1]), extrema(ranges[2])), 
                         xlabel=labels[1], 
@@ -194,7 +194,7 @@ function fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, array, 
     fig = Figure(size=(900, 600))
     
     # Make title and axis
-    # titl = "a = $(round(SP.AP.a, sigdigits=3)), L = $(round(SP.AP.L, sigdigits=3)), Delta = $(round(Δ, sigdigits=3))"
+    # title = "a = $(round(SP.AP.a, sigdigits=3)), L = $(round(SP.AP.L, sigdigits=3)), Delta = $(round(Δ, sigdigits=3))"
     Label(fig[1, 1], "title", tellwidth=false)
     zWidth  = maximum(z_range) - minimum(z_range)
     xHeight = maximum(x_range) - minimum(x_range)

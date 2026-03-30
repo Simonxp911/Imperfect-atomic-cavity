@@ -75,7 +75,7 @@ struct ArrayPar
     a::Real                                     # Dimensionless (in-plane) lattice spacing
     L::Real                                     # Dimensionless inter-lattice spacing
     ff::Real                                    # Filling fraction
-    pos_unc::Real                               # Position uncertainty
+    pos_unc::Union{Real, AbstractVector}        # Position uncertainty
     radius::Real                                # Radius of sheets in units of lattice spacing (i.e. number of atoms from the central atom to the sheet edge)
     cut_corners::Bool                           # Whether to cut corners of the array (to make it circular)
     N_inst::Int                                 # Number of instantiations (for array with random elements due to imperfect filling and position uncertainty)
@@ -85,7 +85,7 @@ struct ArrayPar
     
     function ArrayPar(lattice_type::String, N_sheets::Int,
                       a::Real, L::Real,
-                      ff::Real, pos_unc::Real,
+                      ff::Real, pos_unc::Union{Real, AbstractVector},
                       radius::Real, cut_corners::Bool,
                       N_inst::Int)
         
@@ -109,7 +109,7 @@ end
 
 function AP_Square(N_sheets::Int,
                    a::Real, L::Real,
-                   ff::Real, pos_unc::Real,
+                   ff::Real, pos_unc::Union{Real, AbstractVector},
                    radius::Real, cut_corners::Bool,
                    N_inst::Int,
                    EP::ExperimentalPar; 
@@ -124,9 +124,9 @@ function AP_Square(N_sheets::Int,
             throw(ArgumentError("AP_Square received L = NaN but no L_ratio!"))
         end
     end
-    if isnan(pos_unc)
+    if any(isnan.(pos_unc))
         if !isnothing(pos_unc_ratio) 
-            pos_unc = pos_unc_ratio*a 
+            pos_unc = pos_unc_ratio.*a 
         else
             throw(ArgumentError("AP_Square received pos_unc = NaN but no pos_unc_ratio!"))
         end
@@ -244,7 +244,7 @@ struct SystemPar
     EP::ExperimentalPar                         # Experimental parameters struct
     
     L_ratio::Int                                # Inter-sheet distance in units EP.latticeSpacing_outOfPlane
-    pos_unc_ratio::Real                         # Position uncertainty in units of lattice spacing
+    pos_unc_ratio::Union{Real, AbstractVector}  # Position uncertainty in units of lattice spacing
     AP::ArrayPar                                # Array parameters struct
     
     Delta_specs::Tuple{Real, Real, Int}         # Specs for detuning
@@ -259,7 +259,7 @@ struct SystemPar
     
     
     function SystemPar(EP::ExperimentalPar,
-                       L_ratio::Real, pos_unc_ratio::Real, AP::ArrayPar,
+                       L_ratio::Real, pos_unc_ratio::Union{Real, AbstractVector}, AP::ArrayPar,
                        Delta_specs::Tuple{Real, Real, Int},
                        k_n::Int,
                        w0_ratio::Real, DrP::DrivePar,
@@ -317,7 +317,7 @@ struct ScanPar
                      L_ratio_specs::Union{Tuple{Int, Int}, AbstractVector},
                      L_specs::Union{Tuple{Real, Real, Int}, AbstractVector},
                      ff_specs::Union{Tuple{Real, Real, Int}, AbstractVector},
-                     pos_unc_ratio_specs::Union{Tuple{Real, Real, Int}, AbstractVector})
+                     pos_unc_ratio_specs::Union{Tuple{Union{Real, AbstractVector}, Union{Real, AbstractVector}, Int}, AbstractVector})
         
         if typeof(N_sheets_specs) <: Tuple{Int, Int}
             N_sheets_range = N_sheets_specs[1]:N_sheets_specs[2]
@@ -343,7 +343,7 @@ struct ScanPar
             ff_range = ff_specs
         end
         
-        if typeof(pos_unc_ratio_specs) <: Tuple{Real, Real, Int}
+        if typeof(pos_unc_ratio_specs) <: Tuple{Union{Real, AbstractVector}, Union{Real, AbstractVector}, Int}
             pos_unc_ratio_range = range(pos_unc_ratio_specs...)
         else
             pos_unc_ratio_range = pos_unc_ratio_specs
@@ -374,9 +374,9 @@ function scanProduct(ScP::ScanPar)
 end
 
 
-function scanTitlAndLabels(scanProd)
+function scanTitleAndLabels(scanProd)
     fieldLabels = ("N_sh", "L_r", "L", "ff", "pu_r")
-    titlComponents = []
+    titleComponents = []
     indicesForLabels = []
     labels = Array{String}(undef, size(scanProd))
     
@@ -384,7 +384,7 @@ function scanTitlAndLabels(scanProd)
     for (i, len) in enumerate(size(scanProd))
         if len == 1
             if !isnan(collect(scanProd)[1][i])
-                push!(titlComponents, "$(fieldLabels[i]) = $(collect(scanProd)[1][i])")
+                push!(titleComponents, "$(fieldLabels[i]) = $(collect(scanProd)[1][i])")
             end
         else
             push!(indicesForLabels, i)
@@ -396,7 +396,7 @@ function scanTitlAndLabels(scanProd)
         labels[i] = join(["$(fieldLabels[j]): $(scanParams[j])" for j in indicesForLabels], ", ")
     end
     
-    return join(titlComponents, ", "), labels
+    return join(titleComponents, ", "), labels
 end
 
 

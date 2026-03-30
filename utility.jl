@@ -92,7 +92,7 @@ function introduce_position_uncertainty_to_array_sites(array, pos_unc)
     end
     
     # Generate normally-distributed random numbers for each coordinate of each atom
-    random_shift = [pos_unc*randn.(fill(3, N)) for N in length.(array)]
+    random_shift = [collect.(eachcol(pos_unc.*randn(3, N))) for N in length.(array)]
     
     # Return the randomly shifted array sites
     return array + random_shift
