@@ -27,7 +27,7 @@ function get_perfect_array(lattice_type, N_sheets, a, L, radius, cut_corners=tru
     # Repeat sheet N_sheets times
     array = Vector{Vector{Float64}}(undef, 0)
     for i in 0:N_sheets-1
-        z_shift = i*L - (N_sheets - 1)/2*L
+        z_shift = i*L - (N_sheets - 1)*L/2
         push!.(Ref(array), sheet .+ Ref([0, 0, z_shift]))
     end
     

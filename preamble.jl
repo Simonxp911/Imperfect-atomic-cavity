@@ -227,10 +227,10 @@ function DeP_IntensityDefault(radius::Real, a::Real, N_sheets::Int, L::Real)
     
     detec_type = "intensity_on_detection_plane"
     detec_z = (N_sheets - 1)*L/2 + 1.0
-    integration_plane_n = 51
+    integration_plane_n = 101
     integration_plane_radius = 2*radius*a
     detec_radius = radius*a/2
-
+    
     return DetectionPar(detec_type, detec_z,
                         integration_plane_n, integration_plane_radius, 
                         detec_radius)

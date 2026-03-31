@@ -217,15 +217,21 @@ function fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, array, 
     xx, yy, zz = x_range.*ones(n)',  y_range.*zeros(n)', z_range.*ones(n)'
     surface!(zz', xx, yy, color=intensities[2], colormap=:viridis)
     
-    # detection plane xy-plane (really yz)
+    # detection trans plane xy-plane (really yz)
     xx, yy, zz = x_range.*ones(n)',  y_range.*ones(n)', detec_z*ones(n, n)
     detection_plane = xx'.^2 + yy.^2 .<= detec_radius^2
     flt = ones(size(detection_plane)); flt[.!detection_plane] .= NaN        
     surface!(zz.*flt, xx'.*flt, yy.*flt, color=intensities[3], colormap=:viridis)
     
+    # detection refl plane xy-plane (really yz)
+    xx, yy, zz = x_range.*ones(n)',  y_range.*ones(n)', -detec_z*ones(n, n)
+    detection_plane = xx'.^2 + yy.^2 .<= detec_radius^2
+    flt = ones(size(detection_plane)); flt[.!detection_plane] .= NaN        
+    surface!(zz.*flt, xx'.*flt, yy.*flt, color=intensities[4], colormap=:viridis)
+    
     # end xy-plane (really yz)
     xx, yy, zz = x_range.*ones(n)',  y_range.*ones(n)', z_range[end]*ones(n, n)
-    surface!(zz, xx', yy, color=intensities[4], colormap=:viridis)
+    surface!(zz, xx', yy, color=intensities[5], colormap=:viridis)
     
     # Plot the atoms
     radius = 0.3

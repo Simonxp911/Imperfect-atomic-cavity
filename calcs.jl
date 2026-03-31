@@ -13,6 +13,12 @@ end
 # ================================================
 #   Calculate E-field for finite array
 # ================================================
+function calc_free_Efield_fin(r, drive_type, w0, propDirec, dipoleMoment)
+    # Incoming E-field (assuming the drive to have dipoleMoment as its polarization)
+    return get_drivemode(drive_type, r, w0, propDirec)*dipoleMoment
+end
+
+
 function calc_atomic_Efield_fin(r, array, σ_ss, dipoleMoment, Gmat_rn=nothing)
     # Get the GF matrix (evaluated at r - r_n for each atom n)
     if isnothing(Gmat_rn) Gmat_rn = get_Gmat_rn(r, array) end
@@ -29,14 +35,8 @@ function calc_atomic_Efield_fin(r, array, σ_ss, dipoleMoment, Gmat_rn=nothing)
 end
 
 
-function calc_free_Efield_fin(r, drive_type, w0, propDirec, dipoleMoment)
-    # Incoming E-field (assuming the drive to have dipoleMoment as its polarization)
-    return get_drivemode(drive_type, r, w0, propDirec)*dipoleMoment
-end
-
-
 function calc_total_Efield_fin(r, array, σ_ss, drive_type, w0, dipoleMoment, Gmat_rn=nothing)
-    # Incoming E-field (assuming the drive to have dipoleMoment as its polarization)
+    # Incoming E-field (assuming the drive to have dipoleMoment as its polarization and to be propagating in the forward direction, i.e. +z)
     Ed_in = calc_free_Efield_fin(r, drive_type, w0, "forward", dipoleMoment)
     
     # Get the atomic contribution to the E-field
@@ -53,6 +53,9 @@ end
 function calc_trAmpl_fin(Δ, array, Gnm, drivemode, SP)
     # Get the steady state
     σ_ss = calc_σ_ss(Δ, Gnm, drivemode)
+    
+    # Set the integration differential
+    dxdy = SP.DeP.dx*SP.DeP.dy
     
     if SP.DeP.detec_type == "drive_mode"
         # The transmission amplitude for a paraxial drive and detection in that mode
@@ -75,17 +78,16 @@ function calc_trAmpl_fin(Δ, array, Gnm, drivemode, SP)
         Ed_at_trans = calc_atomic_Efield_fin.(SP.DeP.detection_plane_trans, Ref(array), Ref(σ_ss), Ref(SP.EP.dipoleMoment))
         Ed_at_refl  = calc_atomic_Efield_fin.(SP.DeP.detection_plane_refl , Ref(array), Ref(σ_ss), Ref(SP.EP.dipoleMoment))
         Ed_trans = Ed_in + Ed_at_trans
-        detecmode_trans = ones(length(SP.DeP.detection_plane_trans)) .* Ref(SP.EP.dipoleMoment) / sqrt(length(SP.DeP.detection_plane_trans)*SP.DeP.dx*SP.DeP.dy)
-        detecmode_refl  = ones(length(SP.DeP.detection_plane_refl )) .* Ref(SP.EP.dipoleMoment) / sqrt(length(SP.DeP.detection_plane_refl )*SP.DeP.dx*SP.DeP.dy)
+        detecmode_trans = ones(length(SP.DeP.detection_plane_trans)) .* Ref(SP.EP.dipoleMoment) / sqrt(length(SP.DeP.detection_plane_trans)*dxdy)
+        detecmode_refl  = ones(length(SP.DeP.detection_plane_refl )) .* Ref(SP.EP.dipoleMoment) / sqrt(length(SP.DeP.detection_plane_refl )*dxdy)
         
     elseif SP.DeP.detec_type == "emitted_mode_on_detection_plane"
         Ed_in = calc_free_Efield_fin.(SP.DeP.detection_plane_trans, SP.DrP.drive_type, SP.DrP.w0, "forward", Ref(SP.EP.dipoleMoment))
         Ed_at_trans = calc_atomic_Efield_fin.(SP.DeP.detection_plane_trans, Ref(array), Ref(σ_ss), Ref(SP.EP.dipoleMoment))
         Ed_at_refl  = calc_atomic_Efield_fin.(SP.DeP.detection_plane_refl , Ref(array), Ref(σ_ss), Ref(SP.EP.dipoleMoment))
         Ed_trans = Ed_in + Ed_at_trans
-        # detecmode = Ed./norm.(Ed)
-        detecmode_trans = Ed_trans./norm.(Ed_trans) / sqrt(length(SP.DeP.detection_plane_trans)*SP.DeP.dx*SP.DeP.dy)
-        detecmode_refl  = Ed_at_refl./norm.(Ed_at_refl) / sqrt(length(SP.DeP.detection_plane_refl)*SP.DeP.dx*SP.DeP.dy)
+        detecmode_trans = Ed_trans  ./norm.(Ed_trans)   / sqrt(length(SP.DeP.detection_plane_trans)*dxdy)
+        detecmode_refl  = Ed_at_refl./norm.(Ed_at_refl) / sqrt(length(SP.DeP.detection_plane_refl )*dxdy)
         
     else
         throw(DomainError(SP.DeP.detec_type, "This detec_type has not been implemented in calc_transAmpl_fin"))
@@ -94,12 +96,13 @@ function calc_trAmpl_fin(Δ, array, Gnm, drivemode, SP)
     # The transmission is then calculated as the integral of the product of detecmode^\dagger and Ed 
     # (assuming detecmode to be normalized such that integral of detecmode^\dagger*detecmode is unity)
     # Both transmission and reflection is normalized according to the drive's overlap with the detection mode on the transmitted side
-    normalization = sum(adjoint.(detecmode_trans).*Ed_in)*SP.DeP.dx*SP.DeP.dy
-    return sum(adjoint.(detecmode_trans).*Ed_trans)*SP.DeP.dx*SP.DeP.dy/normalization, sum(adjoint.(detecmode_refl).*Ed_at_refl)*SP.DeP.dx*SP.DeP.dy/normalization
+    normalization = sum(adjoint.(detecmode_trans).*Ed_in)*dxdy
+    return sum(adjoint.(detecmode_trans).*Ed_trans  )*dxdy/normalization, 
+           sum(adjoint.(detecmode_refl ).*Ed_at_refl)*dxdy/normalization
 end
 
 
-function calc_TRCoef_fin(Δ, array, Gnm, drivemode, SP, Gmat_rn_plane=nothing)
+function calc_TRCoef_fin(Δ, array, Gnm, drivemode, SP, Gmat_rn_plane_trans=nothing, Gmat_rn_plane_refl=nothing)
     if SP.DeP.detec_type ∈ ("drive_mode", "integrated_drive_mode", "flat_mode_on_detection_plane", "emitted_mode_on_detection_plane")
         return abs2.(calc_trAmpl_fin(Δ, array, Gnm, drivemode, SP))
         
@@ -109,18 +112,18 @@ function calc_TRCoef_fin(Δ, array, Gnm, drivemode, SP, Gmat_rn_plane=nothing)
         
         # Calculate E-field and drive on detection plane
         Ed_in = calc_free_Efield_fin.(SP.DeP.detection_plane_trans, SP.DrP.drive_type, SP.DrP.w0, "forward", Ref(SP.EP.dipoleMoment))
-        Ed_at_trans = calc_atomic_Efield_fin.(SP.DeP.detection_plane_trans, Ref(array), Ref(σ_ss), Ref(SP.EP.dipoleMoment), Gmat_rn_plane)
-        Ed_at_refl  = calc_atomic_Efield_fin.(SP.DeP.detection_plane_refl , Ref(array), Ref(σ_ss), Ref(SP.EP.dipoleMoment), Gmat_rn_plane)
+        Ed_at_trans = calc_atomic_Efield_fin.(SP.DeP.detection_plane_trans, Ref(array), Ref(σ_ss), Ref(SP.EP.dipoleMoment), Gmat_rn_plane_trans)
+        Ed_at_refl  = calc_atomic_Efield_fin.(SP.DeP.detection_plane_refl , Ref(array), Ref(σ_ss), Ref(SP.EP.dipoleMoment), Gmat_rn_plane_refl )
         Ed_trans = Ed_in + Ed_at_trans
         
         # The transmission is then calculated as the integral of the product of Ed^\dagger and Ed 
-        normalization = sum(adjoint.(Ed_in).*Ed_in)*SP.DeP.dx*SP.DeP.dy
-        return real(sum(adjoint.(Ed_trans).*Ed_trans)*SP.DeP.dx*SP.DeP.dy/normalization), real(sum(adjoint.(Ed_at_refl).*Ed_at_refl)*SP.DeP.dx*SP.DeP.dy/normalization)
-    
+        dxdy = SP.DeP.dx*SP.DeP.dy
+        normalization = sum(adjoint.(Ed_in).*Ed_in)*dxdy
+        return real(sum(adjoint.(Ed_trans  ).*Ed_trans  )*dxdy/normalization), 
+               real(sum(adjoint.(Ed_at_refl).*Ed_at_refl)*dxdy/normalization)
     else
         throw(DomainError(SP.DeP.detec_type, "This detec_type has not been implemented in calc_TRCoef_fin"))
     end
-    
 end
 
 
@@ -156,6 +159,7 @@ function calc_transAmpl_inf(lattice_type, N_sheets, a, L, Δ, dipoleMoment, dipo
     # The transmission amplitude for the infinite system with some drive and identical detection
     # It is assumed that the drive has the same symmetries as the FT GF, 
     # such that the integration can go over the first octant only
+    # It seems the latter half of the calculation also assumes a right-circular dipole moment...
     
     if N_sheets ∉ [1, 2] throw(ArgumentError("N_sheets = $N_sheets has not been implemented in calc_transAmpl_inf")) end
     
@@ -232,11 +236,14 @@ function scan_TRCoef_fin(SP)
     # Prepare coupling matrices (to avoid calculation these for each value of detuning)
     Gnm = get_Gnm.(SP.AP.array, SP.AP.N, Ref(SP.EP.dipoleMoment))
     if SP.DeP.detec_type ∈ ("integrated_drive_mode",)
-        Gmat_rn_plane = [get_Gmat_rn.(SP.DeP.integration_plane_trans, Ref(arr)) for arr in SP.AP.array]
+        Gmat_rn_plane_trans = [get_Gmat_rn.(SP.DeP.integration_plane_trans, Ref(arr)) for arr in SP.AP.array]
+        Gmat_rn_plane_refl  = [get_Gmat_rn.(SP.DeP.integration_plane_refl , Ref(arr)) for arr in SP.AP.array]
     elseif SP.DeP.detec_type ∈ ("flat_mode_on_detection_plane", "emitted_mode_on_detection_plane", "intensity_on_detection_plane")
-        Gmat_rn_plane = [get_Gmat_rn.(SP.DeP.detection_plane_trans, Ref(arr)) for arr in SP.AP.array]
+        Gmat_rn_plane_trans = [get_Gmat_rn.(SP.DeP.detection_plane_trans, Ref(arr)) for arr in SP.AP.array]
+        Gmat_rn_plane_refl  = [get_Gmat_rn.(SP.DeP.detection_plane_refl , Ref(arr)) for arr in SP.AP.array]
     else 
-        Gmat_rn_plane = fill(nothing, SP.AP.N_inst)
+        Gmat_rn_plane_trans = fill(nothing, SP.AP.N_inst)
+        Gmat_rn_plane_refl  = fill(nothing, SP.AP.N_inst)
     end
     
     # Perform scan
@@ -245,7 +252,8 @@ function scan_TRCoef_fin(SP)
                               reshape(Gnm, SP.AP.N_inst, 1), 
                               reshape(SP.DrP.drivemode, SP.AP.N_inst, 1),
                               Ref(SP),
-                              reshape(Gmat_rn_plane, SP.AP.N_inst, 1))
+                              reshape(Gmat_rn_plane_trans, SP.AP.N_inst, 1),
+                              reshape(Gmat_rn_plane_refl, SP.AP.N_inst, 1))
     Tscan = [TR[1] for TR in TRscan]
     Rscan = [TR[2] for TR in TRscan]
     
