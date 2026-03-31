@@ -410,6 +410,7 @@ end
 ωa::Float64 = 2π
 EP_a532::ExperimentalPar = ExperimentalPar(532, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
 EP_a370::ExperimentalPar = ExperimentalPar(370, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
+EP_a752::ExperimentalPar = ExperimentalPar(752, 532, 780, 2π*6.065, [1, 1im, 0], "rc")
 
 
 
