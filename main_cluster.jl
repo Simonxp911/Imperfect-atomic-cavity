@@ -38,7 +38,7 @@ function performScan(ScP)
     myStartIndex, myEndIndex = myStartIndex_and_myEndIndex(totalNumberOfJobs)
     for index in myStartIndex:myEndIndex
         println("My rank is $myRank, I am working on index = $index")
-        scanParams = collect(scanProd)[index]
+        scanParams = scanProd[index]
         SP = define_SP(scanParams)
         scan_TRCoef_fin(SP)
     end
