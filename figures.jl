@@ -6,12 +6,14 @@ function fig_array(array)
     
     # Make title and axis
     Label(fig[1, 1], L"The atomic array and fiber$$", tellwidth=false)
-    xmax = maximum([site[1] for site in array])
-    xmin = minimum([site[1] for site in array])
-    ymax = maximum([site[2] for site in array])
-    ymin = minimum([site[2] for site in array])
-    zmax = maximum([site[3] for site in array])
-    zmin = minimum([site[3] for site in array])
+    zoom = 1.1
+    shift = 0.5
+    xmax = maximum([site[1] for site in array]) * zoom + shift
+    xmin = minimum([site[1] for site in array]) * zoom - shift
+    ymax = maximum([site[2] for site in array]) * zoom + shift
+    ymin = minimum([site[2] for site in array]) * zoom - shift
+    zmax = maximum([site[3] for site in array]) * zoom + shift
+    zmin = minimum([site[3] for site in array]) * zoom - shift
     Axis3(fig[2, 1], limits=(zmin, zmax, ymin, ymax, xmin, xmax), 
                      yreversed = true,
                      xlabel=L"$ z/λ $", 
@@ -140,8 +142,9 @@ function fig_scanStatsComparison(Delta_range, T_means, T_stds, R_means, R_stds, 
     end
     
     # Finish figure
-    Legend(fig[3, 1:2], ax1, orientation=:horizontal, nbanks=4) 
+    Legend(fig[3, 1:2], ax1, orientation=:horizontal, nbanks=2) 
     display(GLMakie.Screen(), fig)
+    save("C:\\Users\\Simon\\Downloads\\explore_a370_varyROI.png", fig)
 end
 
 

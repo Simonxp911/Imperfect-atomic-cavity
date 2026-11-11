@@ -15,7 +15,7 @@ include("figures.jl")
 # ================================================
 function define_SP()
     # Experimental parameters
-    EP = EP_a532
+    EP = EP_a370
     
     # Number of sheets
     N_sheets = 2
@@ -35,7 +35,7 @@ function define_SP()
     pos_unc = NaN
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
-    radius = 9.0
+    radius = 8.5 # usually 8.5 for 370, 6.0 for 532, 4.5 for 752
     cut_corners = true
     
     # Number of array instantiations to calculate
@@ -51,7 +51,7 @@ function define_SP()
     k_n = 100
     
     # Beam waist for Gaussian drive
-    w0_ratio = 0.5
+    w0_ratio = 5.0
     w0 = NaN
     
     # Set drive parameters
@@ -76,8 +76,8 @@ function define_ScP()
     N_sheets_specs      = [2]
     L_ratio_specs       = [3]
     L_specs             = [NaN]
-    ff_specs            = (0.9, 0.95, 6)
-    pos_unc_ratio_specs = (0.035, 0.05, 4)
+    ff_specs            = [0.95]
+    pos_unc_ratio_specs = [0.04]
     
     return ScanPar(N_sheets_specs, L_ratio_specs, L_specs, ff_specs, pos_unc_ratio_specs)
 end
@@ -87,8 +87,7 @@ function define_SP(scanParams)
     # N_sheets, L_ratio, L, ff, pos_unc_ratio = scanParams
     
     # Experimental parameters
-    EP = EP_a532
-    # EP = EP_a370
+    EP = EP_a370
     
     # Number of sheets
     N_sheets = scanParams[1]
@@ -106,10 +105,9 @@ function define_SP(scanParams)
     # Gaussian position distribution width
     pos_unc_ratio = scanParams[5]
     pos_unc = NaN
-        
+    
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
-    radius = 6.0
-    # radius = 8.5
+    radius = 13.0 # usually 8.5 for 370, 6.0 for 532, 4.5 for 752
     cut_corners = true
     
     # Number of array instantiations to calculate
@@ -148,16 +146,28 @@ end
 
 function main()
     # Define system parameters
-    SP  = define_SP()
-    # ScP = define_ScP()
+    # SP  = define_SP()
+    ScP = define_ScP()
     # show(SP)
     # show(ScP)
     
     
+    # Use a narrow beam and place a detection plane whose size and distance from the array
+    # "picks out" the NA triangle, i.e. only light which is emitted within a certain angle will be detected
+    # You will get light from the edges, but with a narrow beam this might be a small effect
+    # Compare this with the usual broad beam + close-by detection plane to see how much of a difference it makes
+    # i.e. see that they agree more or less
+    
+    # Also look at the EM field mode shape inside the cavity
+    
+    
+    
+    
     # Make figures
+    # fig_array(SP.AP.array[1])
     # scan_TRCoef_fin(SP)
-    make_TRscan_fig(SP)
-    # make_TRscan_comparison_fig(ScP)
+    # make_TRscan_fig(SP)
+    make_TRscan_comparison_fig(ScP)
     # make_Efield_intensity_fig(SP)
     # make_Efield_intensity_3D_fig(SP)
         
@@ -207,14 +217,14 @@ function make_TRscan_comparison_fig(ScP)
         filename_Tscan = "Tscan_" * postfix
         filename_Rscan = "Rscan_" * postfix
         data = check_if_already_calculated(save_dir, [filename_Tscan, filename_Rscan])
-        if length(data) == 2 Tscan, Rscan = data else throw(ArgumentError("Some files were missin in make_TRscan_comparison_fig")) end
+        if length(data) == 2 Tscan, Rscan = data else throw(ArgumentError("Some files were missing in make_TRscan_comparison_fig")) end
         # Tscan, Rscan = scan_TRCoef_fin(SP)
     
         T_means[i], T_stds[i] = scan_statistics(Tscan)
         R_means[i], R_stds[i] = scan_statistics(Rscan)
     end
     
-    title, labels = scantitleAndLabels(scanProd)
+    title, labels = scanTitleAndLabels(scanProd)
     title = "lattice_type, radius, cc, N_inst = $(SP_rep.AP.lattice_type), $(SP_rep.AP.radius), $(SP_rep.AP.cut_corners), $(SP_rep.AP.N_inst) \n" *
            "drive, w0_ratio, dipoleMoment, detec_type = $(SP_rep.DrP.drive_type), $(SP_rep.w0_ratio), $(SP_rep.EP.dipoleMoment_label), $(SP_rep.DeP.detec_type) \n" *
            title
@@ -279,7 +289,7 @@ function make_Efield_intensity_3D_fig(SP)
     # tildeDelta = -real(Gk)
     # tildeGamma =  imag(Gk)
     # Δ = tildeDelta - tildeGamma*tan(ωa*SP.AP.L)
-    Δ = 0.3
+    Δ = 0
     
     # Find the steady state coherences
     Gnm = get_Gnm(array, SP.AP.N, SP.EP.dipoleMoment)

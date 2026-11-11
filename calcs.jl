@@ -64,6 +64,8 @@ function calc_trAmpl_fin(Δ, array, Gnm, drivemode, SP)
     
     # The transmission amplitude for some drive and different choices of detection 
     # as calculated by a direct integration of the E-field (the usual analytic expression is only for paraxial detection modes)
+    # Either integrate the entire mode (across the integration_plane, which assumes the mode is smaller than the integration plane)
+    # or integrate only across finite detection area (the detection_plane)
     elseif SP.DeP.detec_type == "integrated_drive_mode"
         Ed_in       = calc_free_Efield_fin.(SP.DeP.integration_plane_trans, SP.DrP.drive_type, SP.DrP.w0, "forward" , Ref(SP.EP.dipoleMoment))
         Ed_in_refl  = calc_free_Efield_fin.(SP.DeP.integration_plane_refl , SP.DrP.drive_type, SP.DrP.w0, "backward", Ref(SP.EP.dipoleMoment))
