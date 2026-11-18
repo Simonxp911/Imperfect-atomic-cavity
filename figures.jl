@@ -144,7 +144,7 @@ function fig_scanStatsComparison(Delta_range, T_means, T_stds, R_means, R_stds, 
     # Finish figure
     Legend(fig[3, 1:2], ax1, orientation=:horizontal, nbanks=2) 
     display(GLMakie.Screen(), fig)
-    save("C:\\Users\\Simon\\Downloads\\explore_a370_varyROI.png", fig)
+    # save("C:\\Users\\Simon\\Downloads\\explore_a370_varyROI.png", fig)
 end
 
 
@@ -251,4 +251,114 @@ function fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, array, 
     display(GLMakie.Screen(), fig)
 end 
 
+
+function fig_Efield_intensity_3D_crossSections(x_range, y_range, z_range, intensities, array, detec_z, detec_radius)
+    # Expect the same input as fig_Efield_intensity_3D, which means some input is not used
+    
+    # Cut off intensities at some saturation value
+    for intensity in intensities
+        # sat = maximum(intensity[length(x_range)÷2, Int(round(length(z_range)*3.5/8)):Int(round(length(z_range)*4.5/8))])
+        # sat = 0.1
+        sat = maximum(intensities[3])
+        intensity[intensity .> sat] .= sat
+    end
+    
+    # Start figure 
+    fig = Figure(size=(1200, 900))
+    
+    # Make title and axis
+    # title = "a = $(round(SP.AP.a, sigdigits=3)), L = $(round(SP.AP.L, sigdigits=3)), Delta = $(round(Δ, sigdigits=3))"
+    Label(fig[1, 1:2], "title", tellwidth=false)
+    zWidth  = maximum(z_range) - minimum(z_range)
+    xHeight = maximum(x_range) - minimum(x_range)
+    yDepth  = maximum(y_range) - minimum(y_range)
+    ax1 = Axis3(fig[2, 1], limits=(extrema(z_range), extrema(x_range), extrema(y_range)), 
+                    yreversed = true,
+                    xlabel=L"$ z/λ $", 
+                    ylabel=L"$ x/λ $", 
+                    zlabel=L"$ y/λ $", 
+                    aspect=(zWidth, xHeight, yDepth)./maximum((zWidth, xHeight, yDepth)),
+                    azimuth=0.85*2π)
+    ax2 = Axis(fig[2, 2], limits=(extrema(x_range), extrema(y_range)), 
+                    xlabel=L"$ x/λ $", 
+                    ylabel=L"$ y/λ $",
+                    aspect=xHeight/yDepth)
+    ax3 = Axis(fig[3, 1], limits=(extrema(z_range), extrema(y_range)), 
+                    xlabel=L"$ z/λ $", 
+                    ylabel=L"$ y/λ $",
+                    aspect=zWidth/yDepth)
+    ax4 = Axis(fig[3, 2], limits=(extrema(z_range), extrema(x_range)), 
+                    xlabel=L"$ z/λ $", 
+                    ylabel=L"$ x/λ $",
+                    aspect=zWidth/xHeight)
+    
+        
+    # Plot the intensity surfaces
+    n = length(x_range)
+    # yz-plane (really xz)
+    xx, yy, zz = x_range.*zeros(n)',  y_range.*ones(n)', z_range.*ones(n)'
+    surface!(ax1, zz', xx, yy, color=intensities[1], colormap=:viridis, shading=false)
+    heatmap!(ax3, z_range, y_range, intensities[1]', colormap=:viridis)
+    
+    # xz-plane (really xy)
+    xx, yy, zz = x_range.*ones(n)',  y_range.*zeros(n)', z_range.*ones(n)'
+    surface!(ax1, zz', xx, yy, color=intensities[2], colormap=:viridis, shading=true)
+    heatmap!(ax4, z_range, x_range, intensities[2]', colormap=:viridis)
+    
+    # end xy-plane (really yz)
+    xx, yy, zz = x_range.*ones(n)',  y_range.*ones(n)', z_range[end]*ones(n, n)
+    surface!(ax1, zz, xx', yy, color=intensities[5], colormap=:viridis, shading=false)
+    heatmap!(ax2, x_range, y_range, intensities[5], colormap=:viridis)
+    
+    # Plot the atoms
+    radius = 0.3
+    θs = range(0, π, 20)
+    φs = range(0, 2π, 20)
+    xSph = radius.*[cos(φ)*sin(θ) for θ in θs, φ in φs]
+    ySph = radius.*[sin(φ)*sin(θ) for θ in θs, φ in φs]
+    zSph = radius.*[cos(θ) for θ in θs, φ in φs]
+    for site in array
+        surface!(ax1, zSph .+ site[3], ySph .+ site[2], xSph .+ site[1], colormap=:grays)
+        scatter!(ax3, [site[3]], [site[2]], color=RGBA(0, 0, 0, 0), markersize=10, strokewidth=1, strokecolor=:black)
+        scatter!(ax4, [site[3]], [site[1]], color=RGBA(0, 0, 0, 0), markersize=10, strokewidth=1, strokecolor=:black)
+        
+    end
+    
+    # Colorbar(fig[3, 2:3], limits=colorrange, colormap=:viridis, label=L"Intensity, any unit$$")
+    
+    # Finish figure
+    display(GLMakie.Screen(), fig)
+    save("C:\\Users\\Simon\\Downloads\\Efield_intensity_3D.png", fig)
+end 
+
+
+function fig_excitation_distribution(sites_x, sites_y, sheets_z, N_sheets, pops, title)
+    
+    # Start figure
+    fig = Figure(size=(1200, 600))
+    Label(fig[1, 1:N_sheets+1], title, tellwidth=false)
+    axes = [
+            Axis(fig[2, i][1, 1], #limits=(extrema(Delta_range)..., 0, 1), 
+            xlabel=L"$ x/λ $")
+           for i in 1:N_sheets]
+    axes[1].ylabel = L"$ y/λ $"
+    linkyaxes!(axes...)
+    
+    colorrange = [minimum([pop for pop in pops if !isnan(pop)]), maximum([pop for pop in pops if !isnan(pop)])]
+    for (i, ax, pop, sheet_z) in zip(1:N_sheets, axes, eachrow(pops), sheets_z)
+        # heatmap!(ax, sites_x, sites_y, pop)
+        # tricontourf!(ax, sites_x, sites_y, pop, colormap=:viridis)
+        scatter!(ax, sites_x, sites_y, color=pop, markersize=25, strokewidth=1, strokecolor=:black, colormap=:viridis, colorrange=colorrange)
+        ax.title = L"$ z = %$(round(sheet_z, sigdigits=4)) $"
+    end
+    # Colorbar(fig[2, N_sheets+1], sc)
+    Colorbar(fig[2, N_sheets+1], limits=colorrange, colormap=:viridis, label=L"Population$$")
+    
+    # Finish figure
+    display(GLMakie.Screen(), fig)
+    # save("C:\\Users\\Simon\\Downloads\\.png", fig)
+end
+
+
+    
     # save("C:\\Users\\Simon\\Downloads\\FILENAME.png", fig)

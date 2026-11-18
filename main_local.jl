@@ -28,10 +28,10 @@ function define_SP()
     L = NaN
     
     # Filling fraction 
-    ff = 1.0 - 0.0
+    ff = 1.0 - 0.05
     
     # Gaussian position distribution width
-    pos_unc_ratio = 0.0
+    pos_unc_ratio = 0.035
     pos_unc = NaN
         
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
@@ -51,7 +51,7 @@ function define_SP()
     k_n = 100
     
     # Beam waist for Gaussian drive
-    w0_ratio = 5.0
+    w0_ratio = 0.5
     w0 = NaN
     
     # Set drive parameters
@@ -76,8 +76,8 @@ function define_ScP()
     N_sheets_specs      = [2]
     L_ratio_specs       = [3]
     L_specs             = [NaN]
-    ff_specs            = [0.95]
-    pos_unc_ratio_specs = [0.04]
+    ff_specs            = (0.9, 0.95, 2)
+    pos_unc_ratio_specs = (0.035, 0.05, 2)
     
     return ScanPar(N_sheets_specs, L_ratio_specs, L_specs, ff_specs, pos_unc_ratio_specs)
 end
@@ -107,7 +107,7 @@ function define_SP(scanParams)
     pos_unc = NaN
     
     # Set radius of sheets (in units of a) and whether to cut of corners (making the sheet rounded)
-    radius = 13.0 # usually 8.5 for 370, 6.0 for 532, 4.5 for 752
+    radius = 8.5 # usually 8.5 for 370, 6.0 for 532, 4.5 for 752
     cut_corners = true
     
     # Number of array instantiations to calculate
@@ -124,13 +124,25 @@ function define_SP(scanParams)
     
     # Beam waist for Gaussian drive
     w0 = NaN
-    w0_ratio = 5.0
+    w0_ratio = 0.5
     
     # Set drive parameters
     DrP = DrP_Gaussian(w0, "forward", AP.radius, AP.a, AP.array; w0_ratio=w0_ratio)
     
     # Set detection parameters
-    DeP = DeP_IntensityDefault(AP.radius, AP.a, AP.N_sheets, AP.L)
+    # DeP = DeP_IntensityDefault(AP.radius, AP.a, AP.N_sheets, AP.L)
+    
+    acceptance_angle = 43
+    detec_radius_ratio = 0.5
+    detec_type = "intensity_on_detection_plane"
+    detec_z = (AP.N_sheets - 1)*AP.L/2 + (1 + detec_radius_ratio)*AP.radius*AP.a/tand(acceptance_angle)
+    integration_plane_n = 101
+    integration_plane_radius = 2*AP.radius*AP.a
+    detec_radius = detec_radius_ratio*AP.radius*AP.a
+    
+    DeP = DetectionPar(detec_type, detec_z,
+                       integration_plane_n, integration_plane_radius, 
+                       detec_radius)
     
                      
     return SystemPar(EP,
@@ -146,30 +158,20 @@ end
 
 function main()
     # Define system parameters
-    # SP  = define_SP()
-    ScP = define_ScP()
+    SP  = define_SP()
+    # ScP = define_ScP()
     # show(SP)
     # show(ScP)
-    
-    
-    # Use a narrow beam and place a detection plane whose size and distance from the array
-    # "picks out" the NA triangle, i.e. only light which is emitted within a certain angle will be detected
-    # You will get light from the edges, but with a narrow beam this might be a small effect
-    # Compare this with the usual broad beam + close-by detection plane to see how much of a difference it makes
-    # i.e. see that they agree more or less
-    
-    # Also look at the EM field mode shape inside the cavity
-    
-    
     
     
     # Make figures
     # fig_array(SP.AP.array[1])
     # scan_TRCoef_fin(SP)
     # make_TRscan_fig(SP)
-    make_TRscan_comparison_fig(ScP)
+    # make_TRscan_comparison_fig(ScP)
     # make_Efield_intensity_fig(SP)
-    # make_Efield_intensity_3D_fig(SP)
+    make_Efield_intensity_3D_fig(SP)
+    # make_excitation_distribution_fig(SP)
         
     return nothing
 end
@@ -194,7 +196,7 @@ function make_TRscan_fig(SP)
     # T_inf_k  = false
     
     
-    # Write a title and plot the Tscan
+    # Plot the Tscan
     # fig_Delta_scan(SP.Delta_range, Tscan, SP)
     # fig_Delta_scan_stats(SP.Delta_range, T_means, T_stds, T_inf_k0, T_inf_k, SP)
     fig_Delta_TRscan_stats(SP.Delta_range, T_means, T_stds, R_means, R_stds, SP)
@@ -289,7 +291,7 @@ function make_Efield_intensity_3D_fig(SP)
     # tildeDelta = -real(Gk)
     # tildeGamma =  imag(Gk)
     # Δ = tildeDelta - tildeGamma*tan(ωa*SP.AP.L)
-    Δ = 0
+    Δ = 0.5
     
     # Find the steady state coherences
     Gnm = get_Gnm(array, SP.AP.N, SP.EP.dipoleMoment)
@@ -319,9 +321,49 @@ function make_Efield_intensity_3D_fig(SP)
         end
     end
     
-    fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, array, SP.DeP.detec_z, SP.DeP.detec_radius)
+    # fig_Efield_intensity_3D(x_range, y_range, z_range, intensities, array, SP.DeP.detec_z, SP.DeP.detec_radius)
+    fig_Efield_intensity_3D_crossSections(x_range, y_range, z_range, intensities, array, SP.DeP.detec_z, SP.DeP.detec_radius)
 end
 
+
+function make_excitation_distribution_fig(SP)
+    # Choose which instantiation of the array in SP to use
+    which_inst = 1
+    array = SP.AP.array[which_inst]
+    drivemode = SP.DrP.drivemode[which_inst]
+    
+    # Choose detuning and find the steady state populations
+    Δ = 0
+    Gnm = get_Gnm(array, SP.AP.N, SP.EP.dipoleMoment)
+    pop_ss = calc_pop_ss(Δ, Gnm, drivemode)
+    
+    # Prepare x,y,z coordinates and populations of atoms [PRESENTLY this is incapable of handling positional uncertainty!]
+    lattice_vectors = get_lattice_vectors(SP.AP.lattice_type, SP.AP.a)
+    single_sheet = get_single_sheet(lattice_vectors, SP.AP.a, SP.AP.radius, SP.AP.cut_corners)
+    
+    perfect_array = get_perfect_array(SP.AP.lattice_type, SP.AP.N_sheets, SP.AP.a, SP.AP.L, SP.AP.radius, SP.AP.cut_corners)
+    sheets_z = sort(unique([site[3] for site in perfect_array]))
+    
+    sites_x  = fill(NaN, length(single_sheet))
+    sites_y  = deepcopy(sites_x)
+    pops     = fill(NaN, SP.AP.N_sheets, length(single_sheet))
+    for (i, site_single) in enumerate(single_sheet)
+        sites_x[i] = site_single[1]
+        sites_y[i] = site_single[2]
+        for (j, site_z) in enumerate(sheets_z)
+            site_full = [sites_x[i], sites_y[i], site_z]
+            if site_full in array
+                pops[j, i] = pop_ss[findfirst(Ref(site_full) .== array)]
+            end
+        end
+    end
+    
+    # Prepare title and plot
+    title = "lattice_type, radius, cc, N_inst = $(SP.AP.lattice_type), $(SP.AP.radius), $(SP.AP.cut_corners), $(SP.AP.N_inst) \n" *
+            "drive, w0_ratio, dipoleMoment, detec_type = $(SP.DrP.drive_type), $(SP.w0_ratio), $(SP.EP.dipoleMoment_label), $(SP.DeP.detec_type) \n" *
+            "Delta = $(Δ)"
+    fig_excitation_distribution(sites_x, sites_y, sheets_z, SP.AP.N_sheets, pops, title)
+end
 
 
 

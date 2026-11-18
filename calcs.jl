@@ -10,6 +10,12 @@ function calc_σ_ss(Δ, Gnm, drivemode)
 end
 
 
+function calc_pop_ss(Δ, Gnm, drivemode)
+    σ_ss = calc_σ_ss(Δ, Gnm, drivemode)
+    return abs2.(σ_ss)
+end
+
+
 # ================================================
 #   Calculate E-field for finite array
 # ================================================
